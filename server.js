@@ -210,7 +210,7 @@ var logRef = db.ref('log')
 var ratingRef = db.ref('activity/rating');
 var langRef = db.ref('tran/vi');
 var buyRef = db.ref('activity/buy');
-var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead, Lang
+var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead,dataEmail, Lang
 var groupRef = firebase.database().ref('groupData')
 
 var groupData, groupArray
@@ -265,25 +265,15 @@ groupRef.once('value', function (snap) {
 })
 
 function init() {
-    console.log('init')
+
     configRef.on('value', function (snap) {
         CONFIG = snap.val()
     })
+
     langRef.on('value', function (snap) {
         Lang = snap.val()
     })
-    // userCol.find({}).toArray(function (err, suc) {
-    //     dataUser = {}
-    //     for (var i in suc) {
-    //         var user = suc[i]
-    //         dataUser[user.userId] = user
-    //         if(user.package){
-    //             console.log(user.package,user.userId)
-    //         }
-    //     }
-    //     console.log('dataUser', suc.length)
-    //     analyticsUserToday()
-    // })
+
     staticRef.on('value', function (snap) {
         dataStatic = snap.val()
         // var staticCollection = md.collection('static')
@@ -295,18 +285,6 @@ function init() {
         // }
     });
 
-    // userCol.find({}).toArray(function (err, suc) {
-    //     dataUser = {}
-    //     for (var i in suc) {
-    //         var user = suc[i]
-    //         dataUser[user.userId] = user
-    //         if(user.package){
-    //             console.log(user.package,user.userId)
-    //         }
-    //     }
-    //     console.log('dataUser', suc.length)
-    //     analyticsUserToday()
-    // })
     userRef.on('value', function (snap) {
         dataUser = snap.val();
 
@@ -346,15 +324,6 @@ function init() {
 
 
     });
-    // profileCol.find({}).toArray(function (err, suc) {
-    //     dataProfile = {}
-    //     for (var i in suc) {
-    //         var user = suc[i]
-    //         dataProfile[user.userId] = user
-    //     }
-    //     console.log('dataProfile', suc.length)
-    //
-    // })
 
     profileRef.on('value', function (snap) {
         dataProfile = snap.val()
@@ -401,14 +370,6 @@ function init() {
 
     });
 
-    // storeCol.find({}).toArray(function (err, suc) {
-    //     dataStore = {}
-    //     for(var i in suc){
-    //         dataStore[suc[i].storeId] = suc[i]
-    //     }
-    //     console.log('dataStore', suc.length)
-    //
-    // })
     jobRef.on('value', function (snap) {
         dataJob = snap.val()
 
@@ -482,14 +443,6 @@ function init() {
 
     });
 
-    // jobCol.find({}).toArray(function (err, suc) {
-    //     dataJob = {}
-    //     for(var i in suc){
-    //         dataJob[suc[i].jobId] = suc[i]
-    //     }
-    //     console.log('dataJob', suc.length)
-    //
-    // })
     storeRef.on('value', function (snap) {
         dataStore = snap.val()
         storeRef.child('undefined').remove()
@@ -564,41 +517,48 @@ function init() {
 
     });
 
-
     likeActivityRef.on('value', function (snap) {
         likeActivity = snap.val()
     });
-    // logRef.once('value', function (snap) {
-    //     console.log('done')
-    //     dataLog = snap.val()
-    //     var logCollection = md.collection('log')
-    //     var logcount = 0
-    //     for(var i in dataLog){
-    //         logcount++
-    //         console.log(logcount)
-    //         var logData = dataLog[i]
-    //         logCollection.insert(logData,function (err,suc) {
-    //             console.log(err)
-    //         })
-    //     }
-    //
-    // });
-    var now = new Date().getTime();
-    notificationRef.startAt(now).once('value', function (snap) {
-        var data = snap.val()
-        var i = 0
-        for (var i in data) {
-            i++
-            console.log(i)
-            var mail = data[i]
-            sendNotification(dataUser[i], mail, true, true, true, true, mail.time)
-        }
 
-    })
+    logRef.on('value', function (snap) {
+        dataLog = snap.val()
+        // var logCollection = md.collection('log')
+        // var logcount = 0
+        // for(var i in dataLog){
+        //     logcount++
+        //     console.log(logcount)
+        //     var logData = dataLog[i]
+        //     logCollection.insert(logData,function (err,suc) {
+        //         console.log(err)
+        //     })
+        // }
+
+    });
+
+    notificationRef.on('value', function (snap) {
+        dataNoti = snap.val()
+        var now = new Date().getTime();
+
+        // var i = 0
+        // for (var i in data) {
+        //     i++
+        //     console.log(i)
+        //     var mail = data[i]
+        //     sendNotification(dataUser[i], mail, true, true, true, true, mail.time)
+        // }
+
+    });
 
     leadRef.on('value', function (data) {
         dataLead = data.val()
+
     })
+
+    emailRef.on('value', function (data) {
+        dataEmail = data.val()
+    })
+
     return new Promise(function (resolve, reject) {
         resolve(dataProfile)
     }).then(function () {
