@@ -17,22 +17,20 @@
       <file leaf-file-name="server.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/server.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="971">
-              <caret line="73" column="0" lean-forward="false" selection-start-line="73" selection-start-column="0" selection-end-line="73" selection-end-column="0" />
+            <state relative-caret-position="264">
+              <caret line="160" column="41" lean-forward="true" selection-start-line="160" selection-start-column="41" selection-end-line="160" selection-end-column="41" />
               <folding>
                 <element signature="e#2259#2377#0" expanded="false" />
                 <element signature="e#2420#2540#0" expanded="false" />
                 <element signature="e#2579#3093#0" expanded="false" />
                 <element signature="e#3998#4033#0" expanded="false" />
                 <element signature="e#4076#4109#0" expanded="false" />
-                <element signature="e#13142#13180#0" expanded="false" />
                 <element signature="n#!!block;n#PublishPost#0" expanded="false" />
                 <element signature="n#!!block;n#PublishPhoto#0" expanded="false" />
                 <element signature="n#!!block;n#PublishComment#0" expanded="false" />
                 <element signature="n#!!block;n#getPaginatedItems#0" expanded="false" />
                 <element signature="n#!!block;n#getDistanceFromLatLonInKm#0" expanded="false" />
                 <element signature="n#!!block;n#deg2rad#0" expanded="false" />
-                <marker date="1504615399000" expanded="false" signature="4113:12989" ph="..." />
               </folding>
             </state>
           </provider>
@@ -131,16 +129,15 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1504599422242</updated>
-      <workItem from="1504599424242" duration="7558000" />
+      <workItem from="1504599424242" duration="8971000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="7558000" />
+    <option name="totallyTimeSpent" value="8971000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1280" height="800" extended-state="0" />
-    <editor active="true" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2494043" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -149,7 +146,7 @@
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -173,22 +170,20 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/server.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="971">
-          <caret line="73" column="0" lean-forward="false" selection-start-line="73" selection-start-column="0" selection-end-line="73" selection-end-column="0" />
+        <state relative-caret-position="264">
+          <caret line="160" column="41" lean-forward="true" selection-start-line="160" selection-start-column="41" selection-end-line="160" selection-end-column="41" />
           <folding>
             <element signature="e#2259#2377#0" expanded="false" />
             <element signature="e#2420#2540#0" expanded="false" />
             <element signature="e#2579#3093#0" expanded="false" />
             <element signature="e#3998#4033#0" expanded="false" />
             <element signature="e#4076#4109#0" expanded="false" />
-            <element signature="e#13142#13180#0" expanded="false" />
             <element signature="n#!!block;n#PublishPost#0" expanded="false" />
             <element signature="n#!!block;n#PublishPhoto#0" expanded="false" />
             <element signature="n#!!block;n#PublishComment#0" expanded="false" />
             <element signature="n#!!block;n#getPaginatedItems#0" expanded="false" />
             <element signature="n#!!block;n#getDistanceFromLatLonInKm#0" expanded="false" />
             <element signature="n#!!block;n#deg2rad#0" expanded="false" />
-            <marker date="1504615399000" expanded="false" signature="4113:12989" ph="..." />
           </folding>
         </state>
       </provider>
