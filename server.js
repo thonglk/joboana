@@ -402,19 +402,6 @@ function init() {
     // });
 
 
-    notificationRef.on('value', function (snap) {
-        dataNoti = snap.val()
-        var now = new Date().getTime();
-
-        // var i = 0
-        // for (var i in data) {
-        //     i++
-        //     console.log(i)
-        //     var mail = data[i]
-        //     sendNotification(dataUser[i], mail, true, true, true, true, mail.time)
-        // }
-
-    });
 
     leadRef.on('value', function (data) {
         dataLead = data.val()
