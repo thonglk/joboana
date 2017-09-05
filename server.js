@@ -132,7 +132,7 @@ var logRef = db.ref('log')
 var ratingRef = db.ref('activity/rating');
 var langRef = db.ref('tran/vi');
 var buyRef = db.ref('activity/buy');
-var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead,dataEmail, Lang
+var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead, dataEmail, Lang
 var groupRef = firebase.database().ref('groupData')
 
 var groupData
@@ -152,14 +152,8 @@ function init() {
         Lang = snap.val()
     })
 
-
-    leadRef.on('value', function (data) {
-        dataLead = data.val()
-        console.log('done')
-    })
-
-    emailRef.on('value', function (data) {
-        dataEmail = data.val()
+    notificationRef.once('value', function (snap) {
+        dataNoti = snap.val()
     })
 
 }
@@ -251,22 +245,6 @@ function deg2rad(deg) {
     return deg * (Math.PI / 180)
 }
 
-app.get('/api/lead', function (req, res) {
-
-
-    var query = req.param('q')
-    var param = JSON.parse(query)
-
-    var page = req.param('p');
-
-
-    var sorded = _.sortBy(dataLead, function (card) {
-        return -card.createdAt
-    })
-    var sendData = getPaginatedItems(sorded, page)
-    res.send(sendData)
-
-});
 
 
 // automate Job post facebook
