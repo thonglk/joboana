@@ -3,7 +3,7 @@ var firebase = require("firebase-admin");
 var express = require('express');
 
 var app = express();
-var port = process.env.PORT || 8080;
+var port = process.env.PORT || 8081;
 var fs = require('fs');
 var http = require('http')
 var https = require('https')
@@ -119,6 +119,319 @@ var publishChannel = {
 };
 
 
+var db = firebase.database();
+var firsttime;
+
+
+var configRef = db.ref('config');
+var actRef = db.ref('act');
+var emailRef = db.ref('emailChannel');
+
+var staticRef = db.ref('static');
+var userRef = db.ref('user');
+var profileRef = db.ref('profile');
+var storeRef = db.ref('store');
+var jobRef = db.ref('job');
+var leadRef = db.ref('lead')
+
+var notificationRef = db.ref('notification')
+var likeActivityRef = db.ref('activity/like');
+var logRef = db.ref('log')
+
+var ratingRef = db.ref('activity/rating');
+var langRef = db.ref('tran/vi');
+var buyRef = db.ref('activity/buy');
+var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead,dataEmail, Lang
+var groupRef = firebase.database().ref('groupData')
+
+var groupData
+
+
+function init() {
+
+    groupRef.on('value', function (snap) {
+        groupData = snap.val()
+
+    })
+    configRef.on('value', function (snap) {
+        CONFIG = snap.val()
+    })
+
+    langRef.on('value', function (snap) {
+        Lang = snap.val()
+    })
+
+    // staticRef.on('value', function (snap) {
+    //     dataStatic = snap.val()
+    // });
+    //
+    // userRef.on('value', function (snap) {
+    //     dataUser = snap.val();
+    //
+    //     var fields = ['name', 'phone', 'email', 'type'];
+    //     var myUser = []
+    //     for (var i in dataUser) {
+    //         var user = dataUser[i]
+    //         if (user.phone) {
+    //             var phoneStr = user.phone.toString()
+    //             if (!phoneStr.match(/^0/g)) phoneStr = "0" + phoneStr;
+    //         } else {
+    //             var phoneStr = ''
+    //         }
+    //
+    //         if (user.type == 2) {
+    //             myUser.push({
+    //                 name: user.name || '',
+    //                 phone: phoneStr,
+    //                 email: user.email || '',
+    //                 type: user.type || ''
+    //             })
+    //         }
+    //     }
+    //     return new Promise(function (resolve, reject) {
+    //         resolve(myUser)
+    //     }).then(function (myUser) {
+    //         var csv = json2csv({data: myUser, fields: fields});
+    //
+    //         fs.writeFile('jobseeker.csv', csv, function (err) {
+    //             if (err) throw err;
+    //             console.log('file saved');
+    //         });
+    //
+    //     })
+    //
+    //     // analyticsUserToday()
+    //
+    //
+    // });
+    //
+    // profileRef.on('value', function (snap) {
+    //     dataProfile = snap.val()
+    //     // var a = 0
+    //     // for (var i in dataProfile) {
+    //     //     var profileData = dataProfile[i]
+    //     //     if (profileData.actData) {
+    //     //         a++
+    //     //         console.log(a)
+    //     //         db.ref('profile/'+i).child('actData').remove()
+    //     //     }
+    //     // }
+    //     profileRef.child('undefined').remove()
+    //     // var profileCollection = md.collection('profile')
+    //     // for(var i in dataProfile){
+    //     //     var profileData = dataProfile[i]
+    //     //     profileCollection.insert(profileData,function (err,suc) {
+    //     //         console.log(err)
+    //     //     })
+    //     // }
+    //
+    //     // var fields = ['name','address'];
+    //     // var myUser = []
+    //     // for (var i in dataProfile) {
+    //     //     var profileData = dataProfile[i]
+    //     //     if(profileData.address && profileData.name)
+    //     //         myUser.push({
+    //     //             name: profileData.name || '',
+    //     //             address: profileData.address,
+    //     //         })
+    //     // }
+    //     // return new Promise(function (resolve, reject) {
+    //     //     resolve(myUser)
+    //     // }).then(function (myUser) {
+    //     //     var csv = json2csv({data: myUser, fields: fields});
+    //     //
+    //     //     fs.writeFile('profilelocation.csv', csv, function (err) {
+    //     //         if (err) throw err;
+    //     //         console.log('file saved');
+    //     //     });
+    //     //
+    //     // })
+    //
+    //
+    // });
+    //
+    // jobRef.on('value', function (snap) {
+    //     dataJob = snap.val()
+    //
+    //     //
+    //     // var fields = ['email', 'phone','storeName'];
+    //     // var myUser = []
+    //     // for (var i in dataUser) {
+    //     //     var user = dataUser[i];
+    //     //     if(user.type == 1){
+    //     //         var storeName = '';
+    //     //         if(user.currentStore && dataStore[user.currentStore] && dataStore[user.currentStore].storeName){
+    //     //             storeName = dataStore[user.currentStore].storeName
+    //     //         }
+    //     //         myUser.push({
+    //     //             email: dataUser[i].email || '',
+    //     //             phone: dataUser[i].phone,
+    //     //             storeName: storeName
+    //     //         })
+    //     //     }
+    //     //
+    //     // }
+    //     // return new Promise(function (resolve, reject) {
+    //     //     resolve(myUser)
+    //     // }).then(function (myUser) {
+    //     //     var csv = json2csv({data: myUser, fields: fields});
+    //     //
+    //     //     fs.writeFile('file.csv', csv, function (err) {
+    //     //         if (err) throw err;
+    //     //         console.log('file saved');
+    //     //     });
+    //     //
+    //     // })
+    //     // for(var i in dataUser){
+    //     //     if(dataUser[i].type == 1 && dataUser[i].package == 'premium'){
+    //     //
+    //     //         sendWelcomeEmailToStore(dataUser[i])
+    //     //     }
+    //     // }
+    //
+    //     // var fields = ['name','address','location'];
+    //     // var myUser = []
+    //     // for (var i in dataStore) {
+    //     //     var storeData = dataStore[i]
+    //     //     if(storeData.location && storeData.createdBy && dataUser[storeData.createdBy] && dataUser[storeData.createdBy].package == 'premium')
+    //     //     myUser.push({
+    //     //         name: dataStore[i].storeName || '',
+    //     //         address: dataStore[i].address,
+    //     //         location: dataStore[i].location
+    //     //
+    //     //     })
+    //     // }
+    //     // return new Promise(function (resolve, reject) {
+    //     //     resolve(myUser)
+    //     // }).then(function (myUser) {
+    //     //     var csv = json2csv({data: myUser, fields: fields});
+    //     //
+    //     //     fs.writeFile('storelocation.csv', csv, function (err) {
+    //     //         if (err) throw err;
+    //     //         console.log('file saved');
+    //     //     });
+    //     //
+    //     // })
+    //
+    //     // var storeCollection = md.collection('store')
+    //     // for(var i in dataStore){
+    //     //     var storeData = dataStore[i]
+    //     //     storeCollection.insert(storeData,function (err,suc) {
+    //     //         console.log(err)
+    //     //     })
+    //     // }
+    //
+    // });
+    //
+    // storeRef.on('value', function (snap) {
+    //     dataStore = snap.val()
+    //     storeRef.child('undefined').remove()
+    //
+    //     //
+    //     // var fields = ['email', 'phone','storeName'];
+    //     // var myUser = []
+    //     // for (var i in dataUser) {
+    //     //     var user = dataUser[i];
+    //     //     if(user.type == 1){
+    //     //         var storeName = '';
+    //     //         if(user.currentStore && dataStore[user.currentStore] && dataStore[user.currentStore].storeName){
+    //     //             storeName = dataStore[user.currentStore].storeName
+    //     //         }
+    //     //         myUser.push({
+    //     //             email: dataUser[i].email || '',
+    //     //             phone: dataUser[i].phone,
+    //     //             storeName: storeName
+    //     //         })
+    //     //     }
+    //     //
+    //     // }
+    //     // return new Promise(function (resolve, reject) {
+    //     //     resolve(myUser)
+    //     // }).then(function (myUser) {
+    //     //     var csv = json2csv({data: myUser, fields: fields});
+    //     //
+    //     //     fs.writeFile('file.csv', csv, function (err) {
+    //     //         if (err) throw err;
+    //     //         console.log('file saved');
+    //     //     });
+    //     //
+    //     // })
+    //     // for(var i in dataUser){
+    //     //     if(dataUser[i].type == 1 && dataUser[i].package == 'premium'){
+    //     //
+    //     //         sendWelcomeEmailToStore(dataUser[i])
+    //     //     }
+    //     // }
+    //
+    //     // var fields = ['name','address','location'];
+    //     // var myUser = []
+    //     // for (var i in dataStore) {
+    //     //     var storeData = dataStore[i]
+    //     //     if(storeData.location && storeData.createdBy && dataUser[storeData.createdBy] && dataUser[storeData.createdBy].package == 'premium')
+    //     //     myUser.push({
+    //     //         name: dataStore[i].storeName || '',
+    //     //         address: dataStore[i].address,
+    //     //         location: dataStore[i].location
+    //     //
+    //     //     })
+    //     // }
+    //     // return new Promise(function (resolve, reject) {
+    //     //     resolve(myUser)
+    //     // }).then(function (myUser) {
+    //     //     var csv = json2csv({data: myUser, fields: fields});
+    //     //
+    //     //     fs.writeFile('storelocation.csv', csv, function (err) {
+    //     //         if (err) throw err;
+    //     //         console.log('file saved');
+    //     //     });
+    //     //
+    //     // })
+    //
+    //     // var storeCollection = md.collection('store')
+    //     // for(var i in dataStore){
+    //     //     var storeData = dataStore[i]
+    //     //     storeCollection.insert(storeData,function (err,suc) {
+    //     //         console.log(err)
+    //     //     })
+    //     // }
+    //
+    // });
+    //
+    // likeActivityRef.on('value', function (snap) {
+    //     likeActivity = snap.val()
+    // });
+
+
+    notificationRef.on('value', function (snap) {
+        dataNoti = snap.val()
+        var now = new Date().getTime();
+
+        // var i = 0
+        // for (var i in data) {
+        //     i++
+        //     console.log(i)
+        //     var mail = data[i]
+        //     sendNotification(dataUser[i], mail, true, true, true, true, mail.time)
+        // }
+
+    });
+
+    leadRef.on('value', function (data) {
+        dataLead = data.val()
+        console.log('done')
+    })
+
+    emailRef.on('value', function (data) {
+        dataEmail = data.val()
+    })
+
+    // return new Promise(function (resolve, reject) {
+    //     resolve(dataProfile)
+    // }).then(function () {
+    //
+    // })
+}
+
 function PublishPost(userId, text, accessToken) {
     if (userId && text && accessToken) {
         graph.post(userId + "/feed?access_token=" + accessToken,
@@ -188,387 +501,22 @@ var facebookAccount = {
 
 }
 
-var db = firebase.database();
-var firsttime;
+app.get('/api/lead', function (req, res) {
 
 
-var configRef = db.ref('config');
-var actRef = db.ref('act');
-var emailRef = db.ref('emailChannel');
+    var query = req.param('q')
+    var param = JSON.parse(query)
 
-var staticRef = db.ref('static');
-var userRef = db.ref('user');
-var profileRef = db.ref('profile');
-var storeRef = db.ref('store');
-var jobRef = db.ref('job');
-var leadRef = db.ref('lead')
-
-var notificationRef = db.ref('notification')
-var likeActivityRef = db.ref('activity/like');
-var logRef = db.ref('log')
-
-var ratingRef = db.ref('activity/rating');
-var langRef = db.ref('tran/vi');
-var buyRef = db.ref('activity/buy');
-var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead,dataEmail, Lang
-var groupRef = firebase.database().ref('groupData')
-
-var groupData, groupArray
-groupRef.once('value', function (snap) {
-    groupData = snap.val()
-    groupArray = _.toArray(groupData)
-
-    var a = 0
-
-    function loop() {
-        var groupDataObj = groupArray[a]
-        var poster = []
-        for (var i in groupDataObj) {
-            if (groupDataObj[i] == true) {
-                poster.push(i)
-            }
-        }
-        console.log(poster)
-        groupDataObj.poster = poster
-        if (groupDataObj.groupId) {
-            groupRef.child(groupDataObj.groupId).update(groupDataObj)
-        }
-        a++
-        if (a < groupArray.length) {
-            loop()
-        }
-
-    }
-
-    loop()
+    var page = req.param('p');
 
 
-    var fields = ['name', 'groupId', 'link', 'finder', 'job', 'area', 'poster', 'thuythuy', 'thong', 'thao2', 'toi', 'thythy', 'khanh', 'dieulinh', 'maitran', 'dong', 'mailinh', 'myhuyen2', 'thao'];
-    var myUser = []
-    for (var i in groupData) {
-        var group = groupData[i]
-        myUser.push(group)
-    }
-    return new Promise(function (resolve, reject) {
-        resolve(myUser)
-    }).then(function (myUser) {
-        var csv = json2csv({data: myUser, fields: fields});
-
-        fs.writeFile('groupActive.csv', csv, function (err) {
-            if (err) throw err;
-            console.log('file saved');
-        });
-
+    var sorded = _.sortBy(dataLead, function (card) {
+        return -card.createdAt
     })
+    var sendData = getPaginatedItems(sorded, page)
+    res.send(sendData)
 
-
-})
-
-function init() {
-
-    configRef.on('value', function (snap) {
-        CONFIG = snap.val()
-    })
-
-    langRef.on('value', function (snap) {
-        Lang = snap.val()
-    })
-
-    staticRef.on('value', function (snap) {
-        dataStatic = snap.val()
-        // var staticCollection = md.collection('static')
-        // for(var i in dataStatic){
-        //     var staticData = dataStatic[i]
-        //     staticCollection.insert(staticData,function (err,suc) {
-        //         console.log(err)
-        //     })
-        // }
-    });
-
-    userRef.on('value', function (snap) {
-        dataUser = snap.val();
-
-        var fields = ['name', 'phone', 'email', 'type'];
-        var myUser = []
-        for (var i in dataUser) {
-            var user = dataUser[i]
-            if (user.phone) {
-                var phoneStr = user.phone.toString()
-                if (!phoneStr.match(/^0/g)) phoneStr = "0" + phoneStr;
-            } else {
-                var phoneStr = ''
-            }
-
-            if (user.type == 2) {
-                myUser.push({
-                    name: user.name || '',
-                    phone: phoneStr,
-                    email: user.email || '',
-                    type: user.type || ''
-                })
-            }
-        }
-        return new Promise(function (resolve, reject) {
-            resolve(myUser)
-        }).then(function (myUser) {
-            var csv = json2csv({data: myUser, fields: fields});
-
-            fs.writeFile('jobseeker.csv', csv, function (err) {
-                if (err) throw err;
-                console.log('file saved');
-            });
-
-        })
-
-        // analyticsUserToday()
-
-
-    });
-
-    profileRef.on('value', function (snap) {
-        dataProfile = snap.val()
-        // var a = 0
-        // for (var i in dataProfile) {
-        //     var profileData = dataProfile[i]
-        //     if (profileData.actData) {
-        //         a++
-        //         console.log(a)
-        //         db.ref('profile/'+i).child('actData').remove()
-        //     }
-        // }
-        profileRef.child('undefined').remove()
-        // var profileCollection = md.collection('profile')
-        // for(var i in dataProfile){
-        //     var profileData = dataProfile[i]
-        //     profileCollection.insert(profileData,function (err,suc) {
-        //         console.log(err)
-        //     })
-        // }
-
-        // var fields = ['name','address'];
-        // var myUser = []
-        // for (var i in dataProfile) {
-        //     var profileData = dataProfile[i]
-        //     if(profileData.address && profileData.name)
-        //         myUser.push({
-        //             name: profileData.name || '',
-        //             address: profileData.address,
-        //         })
-        // }
-        // return new Promise(function (resolve, reject) {
-        //     resolve(myUser)
-        // }).then(function (myUser) {
-        //     var csv = json2csv({data: myUser, fields: fields});
-        //
-        //     fs.writeFile('profilelocation.csv', csv, function (err) {
-        //         if (err) throw err;
-        //         console.log('file saved');
-        //     });
-        //
-        // })
-
-
-    });
-
-    jobRef.on('value', function (snap) {
-        dataJob = snap.val()
-
-        //
-        // var fields = ['email', 'phone','storeName'];
-        // var myUser = []
-        // for (var i in dataUser) {
-        //     var user = dataUser[i];
-        //     if(user.type == 1){
-        //         var storeName = '';
-        //         if(user.currentStore && dataStore[user.currentStore] && dataStore[user.currentStore].storeName){
-        //             storeName = dataStore[user.currentStore].storeName
-        //         }
-        //         myUser.push({
-        //             email: dataUser[i].email || '',
-        //             phone: dataUser[i].phone,
-        //             storeName: storeName
-        //         })
-        //     }
-        //
-        // }
-        // return new Promise(function (resolve, reject) {
-        //     resolve(myUser)
-        // }).then(function (myUser) {
-        //     var csv = json2csv({data: myUser, fields: fields});
-        //
-        //     fs.writeFile('file.csv', csv, function (err) {
-        //         if (err) throw err;
-        //         console.log('file saved');
-        //     });
-        //
-        // })
-        // for(var i in dataUser){
-        //     if(dataUser[i].type == 1 && dataUser[i].package == 'premium'){
-        //
-        //         sendWelcomeEmailToStore(dataUser[i])
-        //     }
-        // }
-
-        // var fields = ['name','address','location'];
-        // var myUser = []
-        // for (var i in dataStore) {
-        //     var storeData = dataStore[i]
-        //     if(storeData.location && storeData.createdBy && dataUser[storeData.createdBy] && dataUser[storeData.createdBy].package == 'premium')
-        //     myUser.push({
-        //         name: dataStore[i].storeName || '',
-        //         address: dataStore[i].address,
-        //         location: dataStore[i].location
-        //
-        //     })
-        // }
-        // return new Promise(function (resolve, reject) {
-        //     resolve(myUser)
-        // }).then(function (myUser) {
-        //     var csv = json2csv({data: myUser, fields: fields});
-        //
-        //     fs.writeFile('storelocation.csv', csv, function (err) {
-        //         if (err) throw err;
-        //         console.log('file saved');
-        //     });
-        //
-        // })
-
-        // var storeCollection = md.collection('store')
-        // for(var i in dataStore){
-        //     var storeData = dataStore[i]
-        //     storeCollection.insert(storeData,function (err,suc) {
-        //         console.log(err)
-        //     })
-        // }
-
-    });
-
-    storeRef.on('value', function (snap) {
-        dataStore = snap.val()
-        storeRef.child('undefined').remove()
-
-        //
-        // var fields = ['email', 'phone','storeName'];
-        // var myUser = []
-        // for (var i in dataUser) {
-        //     var user = dataUser[i];
-        //     if(user.type == 1){
-        //         var storeName = '';
-        //         if(user.currentStore && dataStore[user.currentStore] && dataStore[user.currentStore].storeName){
-        //             storeName = dataStore[user.currentStore].storeName
-        //         }
-        //         myUser.push({
-        //             email: dataUser[i].email || '',
-        //             phone: dataUser[i].phone,
-        //             storeName: storeName
-        //         })
-        //     }
-        //
-        // }
-        // return new Promise(function (resolve, reject) {
-        //     resolve(myUser)
-        // }).then(function (myUser) {
-        //     var csv = json2csv({data: myUser, fields: fields});
-        //
-        //     fs.writeFile('file.csv', csv, function (err) {
-        //         if (err) throw err;
-        //         console.log('file saved');
-        //     });
-        //
-        // })
-        // for(var i in dataUser){
-        //     if(dataUser[i].type == 1 && dataUser[i].package == 'premium'){
-        //
-        //         sendWelcomeEmailToStore(dataUser[i])
-        //     }
-        // }
-
-        // var fields = ['name','address','location'];
-        // var myUser = []
-        // for (var i in dataStore) {
-        //     var storeData = dataStore[i]
-        //     if(storeData.location && storeData.createdBy && dataUser[storeData.createdBy] && dataUser[storeData.createdBy].package == 'premium')
-        //     myUser.push({
-        //         name: dataStore[i].storeName || '',
-        //         address: dataStore[i].address,
-        //         location: dataStore[i].location
-        //
-        //     })
-        // }
-        // return new Promise(function (resolve, reject) {
-        //     resolve(myUser)
-        // }).then(function (myUser) {
-        //     var csv = json2csv({data: myUser, fields: fields});
-        //
-        //     fs.writeFile('storelocation.csv', csv, function (err) {
-        //         if (err) throw err;
-        //         console.log('file saved');
-        //     });
-        //
-        // })
-
-        // var storeCollection = md.collection('store')
-        // for(var i in dataStore){
-        //     var storeData = dataStore[i]
-        //     storeCollection.insert(storeData,function (err,suc) {
-        //         console.log(err)
-        //     })
-        // }
-
-    });
-
-    likeActivityRef.on('value', function (snap) {
-        likeActivity = snap.val()
-    });
-
-    logRef.on('value', function (snap) {
-        dataLog = snap.val()
-        // var logCollection = md.collection('log')
-        // var logcount = 0
-        // for(var i in dataLog){
-        //     logcount++
-        //     console.log(logcount)
-        //     var logData = dataLog[i]
-        //     logCollection.insert(logData,function (err,suc) {
-        //         console.log(err)
-        //     })
-        // }
-
-    });
-
-    notificationRef.on('value', function (snap) {
-        dataNoti = snap.val()
-        var now = new Date().getTime();
-
-        // var i = 0
-        // for (var i in data) {
-        //     i++
-        //     console.log(i)
-        //     var mail = data[i]
-        //     sendNotification(dataUser[i], mail, true, true, true, true, mail.time)
-        // }
-
-    });
-
-    leadRef.on('value', function (data) {
-        dataLead = data.val()
-
-    })
-
-    emailRef.on('value', function (data) {
-        dataEmail = data.val()
-    })
-
-    return new Promise(function (resolve, reject) {
-        resolve(dataProfile)
-    }).then(function () {
-        startList()
-        Email_happyBirthDayProfile()
-
-
-    })
-}
-
+});
 
 app.get('/lookalike', function (req, res) {
     var job = req.param('job')
@@ -5266,7 +5214,5 @@ app.get('/sendList', function (req, res) {
 
 // start the server
 http.createServer(app).listen(port);
-https.createServer(credentials, app).listen(8443);
 console.log('Server started!', port);
-
 init();
