@@ -110,7 +110,7 @@ var publishChannel = {
 };
 
 
-var db = firebase.database();
+var db = secondary.database();
 var firsttime;
 
 
@@ -128,6 +128,7 @@ var leadRef = db.ref('lead')
 var notificationRef = db.ref('notification')
 var likeActivityRef = db.ref('activity/like');
 var logRef = db.ref('log')
+var facebookPostRef = db.ref('facebookPost');
 
 var ratingRef = db.ref('activity/rating');
 var langRef = db.ref('tran/vi');
@@ -135,7 +136,8 @@ var buyRef = db.ref('activity/buy');
 var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead, dataEmail, Lang
 var groupRef = firebase.database().ref('groupData')
 
-var groupData
+var groupData,facebookAccount;
+var a = 0, b = 0;
 
 
 function init() {
@@ -146,6 +148,8 @@ function init() {
     })
     configRef.on('value', function (snap) {
         CONFIG = snap.val()
+        facebookAccount = CONFIG.facebookToken
+
     })
 
     langRef.on('value', function (snap) {
@@ -156,8 +160,69 @@ function init() {
         dataNoti = snap.val()
     })
 
-}
+    var now = Date.now();
+    var startTime = now;
+    var endTime = now + 86400 * 1000;
 
+
+    facebookPostRef.on('child_added', function (snap) {
+        var content = snap.val()
+        if (content && content.time > startTime && content.time < endTime) {
+            console.log('facebook', b++);
+
+            schedule.scheduleJob(content.time, function () {
+                PublishFacebook(content.to, content.content, content.poster, content.postId)
+            })
+        }
+    })
+
+}
+function PublishFacebook(to, content, poster, postId) {
+    console.log('scheduleJob_PublishFacebook_run', to, poster, postId)
+
+    var accessToken = facebookAccount[poster]
+    if (to && content && accessToken) {
+        if (content.image) {
+            graph.post(to + "/photos?access_token=" + accessToken,
+                {
+                    "url": content.image,
+                    "caption": content.text
+                },
+                function (err, res) {
+                    // returns the post id
+                    if (err) {
+                        console.log(err.message, to, poster);
+                        facebookPostRef.child(postId).update({sent_error: err.message})
+                    } else {
+                        var id = res.id;
+                        console.log(id);
+                        facebookPostRef.child(postId).update({id, sent: Date.now()})
+
+                    }
+
+                });
+        } else {
+            graph.post(to + "/feed?access_token=" + accessToken,
+                {"message": content.text},
+                function (err, res) {
+                    // returns the post id
+                    if (err) {
+                        console.log(err.message, to, poster);
+                        facebookPostRef.child(postId).update({sent_error: err.message})
+                    } else {
+                        var id = res.id;
+                        console.log(id);
+                        facebookPostRef.child(postId).update({id, sent: Date.now()})
+
+                    }
+
+                });
+        }
+    }
+}
+app.get('/', function (req, res) {
+    res.send('Will Send '+ b);
+});
 function PublishPost(userId, text, accessToken) {
     if (userId && text && accessToken) {
         graph.post(userId + "/feed?access_token=" + accessToken,
