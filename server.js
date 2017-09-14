@@ -178,6 +178,7 @@ function init() {
 
 }
 function PublishFacebook(to, content, poster, postId) {
+    a++
     console.log('scheduleJob_PublishFacebook_run', to, poster, postId)
 
     var accessToken = facebookAccount[poster]
@@ -221,7 +222,7 @@ function PublishFacebook(to, content, poster, postId) {
     }
 }
 app.get('/', function (req, res) {
-    res.send('Will Send '+ b);
+    res.send('Will Send '+ b +' , sent '+ a);
 });
 function PublishPost(userId, text, accessToken) {
     if (userId && text && accessToken) {
