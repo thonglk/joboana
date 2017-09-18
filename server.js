@@ -233,7 +233,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
 app.get('/', function (req, res, next) {
     res.send('Jobo'+ a +' '+ b)
 })
-app.get('/:queryString', function (req, res, next) {
+app.get('/l/:queryString', function (req, res, next) {
     const queryString = req.params.queryString;
     if (!queryString) res.send('Jobo')
     const notiId = queryString.substr(0, 6)
@@ -287,7 +287,7 @@ function addTrackingEmail(notiId, url, t = 'o', p = 'l') {
         .update({
             url, linkId: notiId, platform, type
         })
-    return notiId + p + t
+    return '/l/'+ notiId + p + t
 
 
 }
@@ -425,7 +425,7 @@ function sendEmailTemplate(email, mail, notiId) {
             '</head>\n' +
             '\n' +
             '<body>\n' +
-            `<img src="/${addTrackingEmail(notiId, '/jobo.png', 'o', 'l')}"/>` +
+            `<img src="${addTrackingEmail(notiId, '/jobo.png', 'o', 'l')}"/>` +
             '\n' +
             '<div class="mj-container">';
         var footer = '</div>\n' +
@@ -494,7 +494,7 @@ function sendEmailTemplate(email, mail, notiId) {
             '                    <![endif]-->\n' +
             '                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;" align="justify" border="0">\n' +
             '                        <tbody>\n' +
-            '                        <tr style="border-collapse:collapse"> <td class="m_-5282972956275044657w580" style="font-family:' + font + ';font-weight:300;border-collapse:collapse" width="580"> <div style="text-align:center"><a href="/' + addTrackingEmail(notiId, mail.linktoaction, 'c', 'l') + '" style="background: #1FBDF1;background: -webkit-linear-gradient(to left, #1FBDF1, #39DFA5); background: linear-gradient(to left, #1FBDF1, #39DFA5);color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:60px;text-align:center;text-decoration:none;width:300px" target="_blank"> ' + mail.calltoaction + '</a></div> </td> </tr>\n' +
+            '                        <tr style="border-collapse:collapse"> <td class="m_-5282972956275044657w580" style="font-family:' + font + ';font-weight:300;border-collapse:collapse" width="580"> <div style="text-align:center"><a href="' + addTrackingEmail(notiId, mail.linktoaction, 'c', 'l') + '" style="background: #1FBDF1;background: -webkit-linear-gradient(to left, #1FBDF1, #39DFA5); background: linear-gradient(to left, #1FBDF1, #39DFA5);color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:60px;text-align:center;text-decoration:none;width:300px" target="_blank"> ' + mail.calltoaction + '</a></div> </td> </tr>\n' +
             '                        </tbody>\n' +
             '                    </table>\n' +
             '                    <!--[if mso | IE]>\n' +
