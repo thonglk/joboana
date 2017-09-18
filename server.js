@@ -119,7 +119,7 @@ var jobRef = db.ref('job');
 var leadRef = db.ref('lead');
 
 
-var notificationRef = joboPxl.database().ref('notis')
+var notificationRef = joboPxl.database().ref('noti')
 var likeActivityRef = db.ref('activity/like');
 var logRef = db.ref('log')
 var facebookPostRef = db.ref('facebookPost');
