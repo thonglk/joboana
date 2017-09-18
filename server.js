@@ -815,6 +815,69 @@ function getPaginatedItems(items, page) {
     };
 }
 
+function sendMessenger(messengerId, noti, key) {
+    return new Promise((resolve, reject) => {
+        var url = 'https://jobobot.herokuapp.com/noti';
+        var param = {
+            messages: {
+                text: noti.body,
+                calltoaction: noti.calltoaction,
+                linktoaction: noti.linktoaction,
+                image: noti.image
+            },
+            recipientIds: messengerId
+        }
+        axios.post(url, param)
+            .then(function (response) {
+                console.log('messenger sent:' + key)
+                notificationRef.child(key).update({messenger_sent: Date.now()});
+                resolve(key);
+            })
+            // .then(() => resolve(key))
+            .catch(function (error) {
+                console.log(error);
+            });
+
+    });
+}
+
+function sendNotificationToGivenUser(registrationToken, noti, type, key) {
+    return new Promise((resolve, reject) => {
+        var payload = {
+            notification: {
+                title: noti.title,
+                body: noti.body || ''
+            },
+            data: {
+                linktoaction: noti.linktoaction || ''
+            }
+        };
+
+        // Set the message as high priority and have it expire after 24 hours.
+        var options = {
+            priority: "high",
+            timeToLive: 60 * 60 * 24
+        };
+
+        // Send a message to the device corresponding to the provided
+        // registration token with the provided options.
+        secondary.messaging().sendToDevice(registrationToken, payload, options)
+            .then(function (response) {
+                if (response.successCount == 1 && type && key) {
+                    var data = {}
+                    data[type + '_sent'] = Date.now()
+                    console.log(type + ' sent', key);
+                    return notificationRef.child(key).update(data);
+                }
+            })
+            .then(() => resolve(key))
+            .catch(function (error) {
+                console.log("Error sending message:", error);
+                reject(error);
+            });
+    });
+}
+
 app.get('/getfbPost', function (req, res) {
     let {p: page, q: query} = req.query
     FacebookPost.find()
