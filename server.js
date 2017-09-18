@@ -91,6 +91,12 @@ var joboPxl = firebase.initializeApp({
     databaseURL: "https://jobo-pxl.firebaseio.com"
 }, 'jobo-pxl');
 
+var joboTest = firebase.initializeApp({
+    credential: firebase.credential.cert('jobotest.json'),
+    databaseURL: "https://jobotest-15784.firebaseio.com"
+}, 'joboTest');
+
+
 var publishChannel = {
     Jobo: {
         pageId: '385066561884380',
@@ -103,7 +109,7 @@ var publishChannel = {
 };
 
 
-var db = secondary.database();
+var db = joboTest.database();
 var db2 = joboPxl.database();
 
 var firsttime;
@@ -113,11 +119,8 @@ var configRef = db.ref('config');
 var notificationRef = db2.ref('notihihi')
 var facebookPostRef = db2.ref('facebookPost');
 
-
-var langRef = db.ref('tran/vi');
-var buyRef = db.ref('activity/buy');
 var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead, dataEmail, Lang
-var groupRef = firebase.database().ref('groupData')
+var groupRef = db.ref('groupData')
 
 var groupData, facebookAccount;
 var a = 0,
@@ -142,12 +145,8 @@ function init() {
     configRef.on('value', function (snap) {
         CONFIG = snap.val()
         facebookAccount = CONFIG.facebookToken
-
     })
 
-    langRef.on('value', function (snap) {
-        Lang = snap.val()
-    })
 
     notificationRef.once('value', function (snap) {
         dataNoti = snap.val()
