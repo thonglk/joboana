@@ -231,7 +231,9 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         });
     });
 }
-
+app.get('/', function (req, res, next) {
+    res.send('Jobo'+ a +' '+ b)
+})
 app.get('/:queryString', function (req, res, next) {
     const queryString = req.params.queryString;
     if (!queryString) res.send('Jobo')
