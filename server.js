@@ -67,7 +67,7 @@ var mailTransport = nodemailer.createTransport(ses({
     region: 'us-east-1'
 }));
 
-
+app.use(express.static(__dirname + '/static'));
 app.use(cors());
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
@@ -104,27 +104,16 @@ var publishChannel = {
 
 
 var db = secondary.database();
+var db2 = joboPxl.database();
+
 var firsttime;
 
 
 var configRef = db.ref('config');
-var actRef = db.ref('act');
-var emailRef = db.ref('emailChannel');
-
-var staticRef = db.ref('static');
-var userRef = db.ref('user');
-var profileRef = db.ref('profile');
-var storeRef = db.ref('store');
-var jobRef = db.ref('job');
-var leadRef = db.ref('lead');
+var notificationRef = db2.ref('notihihi')
+var facebookPostRef = db2.ref('facebookPost');
 
 
-var notificationRef = joboPxl.database().ref('noti')
-var likeActivityRef = db.ref('activity/like');
-var logRef = db.ref('log')
-var facebookPostRef = db.ref('facebookPost');
-
-var ratingRef = db.ref('activity/rating');
 var langRef = db.ref('tran/vi');
 var buyRef = db.ref('activity/buy');
 var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead, dataEmail, Lang
@@ -134,6 +123,16 @@ var groupData, facebookAccount;
 var a = 0,
     b = 0;
 
+var configP = {
+    l: 'letter',
+    M: 'messenger',
+    w: 'web',
+    m: 'mobile'
+}
+var configT = {
+    o: 'open',
+    c: 'click'
+}
 
 function init() {
 
@@ -230,6 +229,94 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
 
 
         });
+    });
+}
+
+app.get('/:queryString', function (req, res, next) {
+    const queryString = req.params.queryString;
+    if (!queryString) res.send('Jobo')
+    const notiId = queryString.substr(0, 6)
+    const p = queryString[6]
+    const t = queryString[7]
+
+
+    var platform = configP[p]
+    var type = configT[t]
+    console.log(notiId, platform, type)
+
+    findLink(queryString)
+        .then(foundLink => {
+            console.log(notiId);
+            // return Promise.resolve(foundLink);
+            return tracking(notiId, platform, foundLink.url, foundLink.type);
+        })
+        .then(result => {
+            res.set({
+                'Surrogate-Control': 'no-store',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            });
+            res.redirect(result.url);
+        })
+        .catch(err => {
+            console.log(err);
+            res.status(500).json(err);
+        });
+});
+
+
+function keygen() {
+
+    const alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' // chars that can be safely used in urls
+    const keylen = 6
+
+    let key = ''
+    for (let i = 0; i < keylen; i += 1) {
+        key += alphabet[_.random(0, alphabet.length - 1)]
+    }
+    return key
+}
+
+function addTrackingEmail(notiId, url, t = 'o', p = 'l') {
+
+    var platform = configP[p]
+    var type = configT[t]
+    joboPxl.database().ref('/links/' + notiId + p + t)
+        .update({
+            url, linkId: notiId, platform, type
+        })
+    return notiId + p + t
+
+
+}
+
+function findLink(queryString) {
+    return new Promise((resolve, reject) => {
+        joboPxl.database().ref('/links')
+            .child(queryString)
+            .once('value')
+            .then(link => {
+                resolve(link.val());
+            })
+            .catch(err => {
+                console.log(err);
+                reject(err);
+            });
+    });
+}
+
+function tracking(notiId, platform, url, type = 'open') {
+    return new Promise((resolve, reject) => {
+        var data = {}
+        data[platform + '_' + type] = Date.now()
+        console.log(data)
+        notificationRef.child(notiId)
+            .update(data)
+            .then(() => resolve({notiId, url}))
+            .catch(err => {
+                reject(err);
+            });
     });
 }
 
@@ -337,6 +424,7 @@ function sendEmailTemplate(email, mail, notiId) {
             '</head>\n' +
             '\n' +
             '<body>\n' +
+            `<img src="/${addTrackingEmail(notiId, '/jobo.png', 'o', 'l')}"/>` +
             '\n' +
             '<div class="mj-container">';
         var footer = '</div>\n' +
@@ -405,7 +493,7 @@ function sendEmailTemplate(email, mail, notiId) {
             '                    <![endif]-->\n' +
             '                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;" align="justify" border="0">\n' +
             '                        <tbody>\n' +
-            '                        <tr style="border-collapse:collapse"> <td class="m_-5282972956275044657w580" style="font-family:' + font + ';font-weight:300;border-collapse:collapse" width="580"> <div style="text-align:center"><a href="' + mail.linktoaction + '" style="background: #1FBDF1;background: -webkit-linear-gradient(to left, #1FBDF1, #39DFA5); background: linear-gradient(to left, #1FBDF1, #39DFA5);color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:60px;text-align:center;text-decoration:none;width:300px" target="_blank"> ' + mail.calltoaction + '</a></div> </td> </tr>\n' +
+            '                        <tr style="border-collapse:collapse"> <td class="m_-5282972956275044657w580" style="font-family:' + font + ';font-weight:300;border-collapse:collapse" width="580"> <div style="text-align:center"><a href="/' + addTrackingEmail(notiId, mail.linktoaction, 'c', 'l') + '" style="background: #1FBDF1;background: -webkit-linear-gradient(to left, #1FBDF1, #39DFA5); background: linear-gradient(to left, #1FBDF1, #39DFA5);color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:60px;text-align:center;text-decoration:none;width:300px" target="_blank"> ' + mail.calltoaction + '</a></div> </td> </tr>\n' +
             '                        </tbody>\n' +
             '                    </table>\n' +
             '                    <!--[if mso | IE]>\n' +
@@ -536,7 +624,6 @@ function sendEmailTemplate(email, mail, notiId) {
 
 
         var htmlMail = '';
-
         if (mail.description1) {
             mail.description = mail.description1
             htmlMail = htmlMail + header + '\n' +
@@ -714,7 +801,6 @@ function startSend(userData, mail, channel, notiId) {
     });
 }
 
-
 function getPaginatedItems(items, page) {
     var page = page || 1,
         per_page = 15,
@@ -728,7 +814,6 @@ function getPaginatedItems(items, page) {
         data: paginatedItems
     };
 }
-
 
 app.get('/getfbPost', function (req, res) {
     let {p: page, q: query} = req.query
@@ -779,9 +864,6 @@ app.post('/newPost', (req, res, next) => {
         .catch(err => res.status(500).json(err));
 });
 
-app.get('/', function (req, res) {
-    res.send('Will Send ' + b + ' , sent ' + a);
-});
 
 function PublishFacebook(to, content, poster, postId) {
     return new Promise((resolve, reject) => {
