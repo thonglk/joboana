@@ -8,7 +8,7 @@ var fs = require('fs');
 var http = require('http')
 var https = require('https')
 var request = require('request');
-
+var bodyParser = require('body-parser');
 var S = require('string');
 
 var nodemailer = require('nodemailer');
@@ -49,26 +49,14 @@ var staticData = {
     profile: 0
 }
 
-//Mongo//
-const MongoClient = require('mongodb');
+//Mongoose//
+import mongoose from 'mongoose';
+import FacebookPost from './models/facebook-post';
 
 var uri = 'mongodb://joboapp:joboApp.1234@ec2-54-157-20-214.compute-1.amazonaws.com:27017/joboapp';
-var md, userCol, profileCol, storeCol, jobCol, notificationCol, staticCol;
 
-// MongoClient.connect(uri, function (err, db) {
-//     md = db
-//     userCol = md.collection('user');
-//     profileCol = md.collection('profile');
-//     storeCol = md.collection('store');
-//     jobCol = md.collection('job');
-//     notificationCol = md.collection('notification');
-//     staticCol = md.collection('static');
-//
-//     console.log("Connected correctly to server.");
-//
-//
-// });
-
+mongoose.connect(uri);
+console.log('Connected to MongoDB at ', uri);
 
 // TODO(DEVELOPER): Configure your email transport.
 
@@ -81,6 +69,8 @@ var mailTransport = nodemailer.createTransport(ses({
 
 
 app.use(cors());
+app.use(bodyParser.json()); // support json encoded bodies
+app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
 app.use(function (req, res, next) {
     res.contentType('application/json');
     next();
@@ -96,7 +86,10 @@ var secondary = firebase.initializeApp({
     credential: firebase.credential.cert('adminsdk-jobo.json'),
     databaseURL: "https://jobo-b8204.firebaseio.com"
 }, "secondary");
-
+var joboPxl = firebase.initializeApp({
+    credential: firebase.credential.cert('jobo-pxl.json'),
+    databaseURL: "https://jobo-pxl.firebaseio.com"
+}, 'jobo-pxl');
 
 var publishChannel = {
     Jobo: {
@@ -123,9 +116,10 @@ var userRef = db.ref('user');
 var profileRef = db.ref('profile');
 var storeRef = db.ref('store');
 var jobRef = db.ref('job');
-var leadRef = db.ref('lead')
+var leadRef = db.ref('lead');
 
-var notificationRef = db.ref('notification')
+
+var notificationRef = joboPxl.database().ref('notis')
 var likeActivityRef = db.ref('activity/like');
 var logRef = db.ref('log')
 var facebookPostRef = db.ref('facebookPost');
@@ -136,15 +130,15 @@ var buyRef = db.ref('activity/buy');
 var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead, dataEmail, Lang
 var groupRef = firebase.database().ref('groupData')
 
-var groupData,facebookAccount;
-var a = 0, b = 0;
+var groupData, facebookAccount;
+var a = 0,
+    b = 0;
 
 
 function init() {
 
     groupRef.on('value', function (snap) {
         groupData = snap.val()
-
     })
     configRef.on('value', function (snap) {
         CONFIG = snap.val()
@@ -160,74 +154,697 @@ function init() {
         dataNoti = snap.val()
     })
 
-    var now = Date.now();
-    var startTime = now;
-    var endTime = now + 86400 * 1000;
 
+    var startTime = Date.now();
+    var endTime = startTime + 86400 * 1000;
+    var a = 0, b = 0;
 
-    facebookPostRef.on('child_added', function (snap) {
-        var content = snap.val()
-        if (content && content.time > startTime && content.time < endTime) {
-            console.log('facebook', b++);
+    notificationRef.on('child_added', function (snap) {
+        var noti = snap.val()
+        if (noti && noti.time > startTime && noti.time < endTime) {
+            console.log('noti', a++);
+            schedule.scheduleJob(noti.time, function () {
+                console.log('start', noti.time);
 
-            schedule.scheduleJob(content.time, function () {
-                PublishFacebook(content.to, content.content, content.poster, content.postId)
+                startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+                    console.log('array', array)
+                })
             })
         }
-    })
+    });
 
+    FacebookPost.find()
+        .then(posts => {
+            posts.forEach(function (post) {
+                if (post.time > startTime && post.time < endTime) {
+                    console.log('facebook', b++);
+                    let promise = Promise.resolve({...post, schedule: true});
+                    schedule.scheduleJob(post.time, function () {
+                        promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
+                    });
+                    return promise;
+                }
+            })
+
+        })
 }
-function PublishFacebook(to, content, poster, postId) {
-    a++
-    console.log('scheduleJob_PublishFacebook_run', to, poster, postId)
 
-    var accessToken = facebookAccount[poster]
-    if (to && content && accessToken) {
-        if (content.image) {
-            graph.post(to + "/photos?access_token=" + accessToken,
-                {
-                    "url": content.image,
-                    "caption": content.text
-                },
-                function (err, res) {
-                    // returns the post id
-                    if (err) {
-                        console.log(err.message, to, poster);
-                        facebookPostRef.child(postId).update({sent_error: err.message})
-                    } else {
-                        var id = res.id;
-                        console.log(id);
-                        facebookPostRef.child(postId).update({id, sent: Date.now()})
+var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
+    return new Promise((resolve, reject) => {
+        // setup email data with unicode symbols
 
-                    }
 
-                });
-        } else {
-            graph.post(to + "/feed?access_token=" + accessToken,
-                {"message": content.text},
-                function (err, res) {
-                    // returns the post id
-                    if (err) {
-                        console.log(err.message, to, poster);
-                        facebookPostRef.child(postId).update({sent_error: err.message})
-                    } else {
-                        var id = res.id;
-                        console.log(id);
-                        facebookPostRef.child(postId).update({id, sent: Date.now()})
-
-                    }
-
-                });
+        let mailOptions = {
+            from: {
+                name: mail.name || 'Jobo | Tìm việc nhanh',
+                address: mail.address || 'contact@jobo.asia'
+            },
+            bcc: mail.bcc,
+            to: addressTo, // list of receivers
+            subject: mail.title, // Subject line
+            // text: 'Hello world?', // plain text body
+            html: `${emailMarkup}`, // html body
         }
-    }
+        if (mail.attachments) {
+            mailOptions.attachments = [
+                {   // filename and content type is derived from path
+                    path: 'https://jobo.asia/img/proposal_pricing_included.pdf'
+                }
+            ]
+        }
+        // send mail with defined transport object
+        mailTransport.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log('Error sent email', addressTo)
+
+                reject(error);
+            }
+
+            console.log('Email sent:', notiId + addressTo)
+
+            // console.log('Message sent: %s', info.messageId);
+            if (notiId) {
+                notificationRef.child(notiId).update({mail_sent: Date.now()})
+            }
+            resolve(notiId);
+
+
+        });
+    });
 }
-app.get('/', function (req, res) {
-    res.send('Will Send '+ b +' , sent '+ a);
+
+function sendEmailTemplate(email, mail, notiId) {
+    return new Promise((resolve, reject) => {
+
+        var card = {}
+
+        var header = '<!doctype html>\n' +
+            '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n' +
+            '\n' +
+            '<head>\n' +
+            '    <title></title>\n' +
+            '    <!--[if !mso]><!-- -->\n' +
+            '    <meta http-equiv="X-UA-Compatible" content="IE=edge">\n' +
+            '    <!--<![endif]-->\n' +
+            '    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n' +
+            '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+            '    <style type="text/css">\n' +
+            '        #outlook a {\n' +
+            '            padding: 0;\n' +
+            '        }\n' +
+            '\n' +
+            '        .ReadMsgBody {\n' +
+            '            width: 100%;\n' +
+            '        }\n' +
+            '\n' +
+            '        .ExternalClass {\n' +
+            '            width: 100%;\n' +
+            '        }\n' +
+            '\n' +
+            '        .ExternalClass * {\n' +
+            '            line-height: 100%;\n' +
+            '        }\n' +
+            '\n' +
+            '        body {\n' +
+            '            margin: 0;\n' +
+            '            padding: 0;\n' +
+            '            -webkit-text-size-adjust: 100%;\n' +
+            '            -ms-text-size-adjust: 100%;\n' +
+            '        }\n' +
+            '\n' +
+            '        table,\n' +
+            '        td {\n' +
+            '            border-collapse: collapse;\n' +
+            '            mso-table-lspace: 0pt;\n' +
+            '            mso-table-rspace: 0pt;\n' +
+            '        }\n' +
+            '\n' +
+            '        img {\n' +
+            '            border: 0;\n' +
+            '            height: auto;\n' +
+            '            line-height: 100%;\n' +
+            '            outline: none;\n' +
+            '            text-decoration: none;\n' +
+            '            -ms-interpolation-mode: bicubic;\n' +
+            '        }\n' +
+            '\n' +
+            '        p {\n' +
+            '            display: block;\n' +
+            '            margin: 13px 0;\n' +
+            '        }\n' +
+            '    </style>\n' +
+            '    <!--[if !mso]><!-->\n' +
+            '    <style type="text/css">\n' +
+            '        @media only screen and (max-width:480px) {\n' +
+            '            @-ms-viewport {\n' +
+            '                width: 320px;\n' +
+            '            }\n' +
+            '            @viewport {\n' +
+            '                width: 320px;\n' +
+            '            }\n' +
+            '        }\n' +
+            '    </style>\n' +
+            '    <!--<![endif]-->\n' +
+            '    <!--[if mso]>\n' +
+            '    <xml>\n' +
+            '        <o:OfficeDocumentSettings>\n' +
+            '            <o:AllowPNG/>\n' +
+            '            <o:PixelsPerInch>96</o:PixelsPerInch>\n' +
+            '        </o:OfficeDocumentSettings>\n' +
+            '    </xml>\n' +
+            '    <![endif]-->\n' +
+            '    <!--[if lte mso 11]>\n' +
+            '    <style type="text/css">\n' +
+            '        .outlook-group-fix {\n' +
+            '            width:100% !important;\n' +
+            '        }\n' +
+            '    </style>\n' +
+            '    <![endif]-->\n' +
+            '\n' +
+            '    <!--[if !mso]><!-->\n' +
+            '    <link href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700" rel="stylesheet" type="text/css">\n' +
+            '    <style type="text/css">\n' +
+            '        @import url(https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700);\n' +
+            '    </style>\n' +
+            '    <!--<![endif]-->\n' +
+            '    <style type="text/css">\n' +
+            '        @media only screen and (min-width:480px) {\n' +
+            '            .mj-column-per-50 {\n' +
+            '                width: 50%!important;\n' +
+            '            }\n' +
+            '        }\n' +
+            '    </style>\n' +
+            '</head>\n' +
+            '\n' +
+            '<body>\n' +
+            '\n' +
+            '<div class="mj-container">';
+        var footer = '</div>\n' +
+            '</body>\n' +
+            '\n' +
+            '</html>';
+
+        var image = ' <!--[if mso | IE]>\n' +
+            '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
+            '        <tr>\n' +
+            '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
+            '    <![endif]-->\n' +
+            '    <div style="margin:0px auto;max-width:600px;">\n' +
+            '        <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:0px;width:100%;" align="center" border="0">\n' +
+            '            <tbody>\n' +
+            '            <tr>\n' +
+            '                <td style="text-align:center;vertical-align:top;direction:ltr;font-size:0px;padding:20px 0px;">\n' +
+            '                    <!--[if mso | IE]>\n' +
+            '                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">\n' +
+            '                        <tr>\n' +
+            '                            <td style="vertical-align:undefined;width:600px;">\n' +
+            '                    <![endif]-->\n' +
+            '                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-spacing:0px;" align="center" border="0">\n' +
+            '                        <tbody>\n' +
+            '                        <tr>\n' +
+            '                            <td style="width:550px;"><img alt="" title="" height="auto" src="' + mail.image + '" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="550"></td>\n' +
+            '                        </tr>\n' +
+            '                        </tbody>\n' +
+            '                    </table>\n' +
+            '                    <!--[if mso | IE]>\n' +
+            '                    </td></tr></table>\n' +
+            '                    <![endif]-->\n' +
+            '                </td>\n' +
+            '            </tr>\n' +
+            '            </tbody>\n' +
+            '        </table>\n' +
+            '    </div>\n' +
+            '    <!--[if mso | IE]>\n' +
+            '    </td></tr></table>\n' +
+            '    <![endif]-->';
+
+        var text = '\n' +
+            '    <!--[if mso | IE]>\n' +
+            '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
+            '        <tr>\n' +
+            '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
+            '    <![endif]-->\n' +
+            '    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:left;">' + mail.description + '</div>\n' +
+            '    <!--[if mso | IE]>\n' +
+            '    </td></tr></table>\n' +
+            '    <![endif]-->';
+
+        var button = '  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
+            '        <tr>\n' +
+            '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
+            '    <![endif]-->\n' +
+            '    <div style="margin:0px auto;max-width:600px;">\n' +
+            '        <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:0px;width:100%;" align="center" border="0">\n' +
+            '            <tbody>\n' +
+            '            <tr>\n' +
+            '                <td style="text-align:center;vertical-align:top;direction:ltr;font-size:0px;padding:20px 0px;">\n' +
+            '                    <!--[if mso | IE]>\n' +
+            '                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">\n' +
+            '                        <tr>\n' +
+            '                            <td style="vertical-align:undefined;width:600px;">\n' +
+            '                    <![endif]-->\n' +
+            '                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;" align="justify" border="0">\n' +
+            '                        <tbody>\n' +
+            '                        <tr style="border-collapse:collapse"> <td class="m_-5282972956275044657w580" style="font-family:' + font + ';font-weight:300;border-collapse:collapse" width="580"> <div style="text-align:center"><a href="' + mail.linktoaction + '" style="background: #1FBDF1;background: -webkit-linear-gradient(to left, #1FBDF1, #39DFA5); background: linear-gradient(to left, #1FBDF1, #39DFA5);color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:60px;text-align:center;text-decoration:none;width:300px" target="_blank"> ' + mail.calltoaction + '</a></div> </td> </tr>\n' +
+            '                        </tbody>\n' +
+            '                    </table>\n' +
+            '                    <!--[if mso | IE]>\n' +
+            '                    </td></tr></table>\n' +
+            '                    <![endif]-->\n' +
+            '                </td>\n' +
+            '            </tr>\n' +
+            '            </tbody>\n' +
+            '        </table>\n' +
+            '    </div>\n' +
+            '    <!--[if mso | IE]>\n' +
+            '    </td></tr></table>\n' +
+            '    <![endif]-->';
+
+        var card_header = '  <!--[if mso | IE]>\n' +
+            '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
+            '        <tr>\n' +
+            '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
+            '    <![endif]-->\n' +
+            '    <div style="margin:0px auto;max-width:600px;">\n' +
+            '        <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:0px;width:100%;" align="center" border="0">\n' +
+            '            <tbody>\n' +
+            '            <tr>\n' +
+            '                <td style="text-align:center;vertical-align:top;direction:ltr;font-size:0px;padding:20px 0px;">\n' +
+            '                    <!--[if mso | IE]>\n' +
+            '                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">\n' +
+            '                        <tr>';
+
+        var card_footer = '  </tr>\n' +
+            '\n' +
+            '                    </table>\n' +
+            '                    <![endif]-->\n' +
+            '                </td>\n' +
+            '            </tr>\n' +
+            '            </tbody>\n' +
+            '        </table>\n' +
+            '    </div>\n' +
+            '    <!--[if mso | IE]>\n' +
+            '    </td></tr></table>\n' +
+            '    <![endif]-->'
+
+        var card_body = '<td style="vertical-align:top;width:300px;">\n' +
+            '                    <![endif]-->\n' +
+            '                    <div class="mj-column-per-50 outlook-group-fix" style="vertical-align:top;display:inline-block;direction:ltr;font-size:13px;text-align:left;width:100%;">\n' +
+            '                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">\n' +
+            '                            <tbody>\n' +
+            '                            <tr>\n' +
+            '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
+            '                                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-spacing:0px;" align="center" border="0">\n' +
+            '                                        <tbody>\n' +
+            '                                        <tr>\n' +
+            '                                            <td style="width:165px;"><img alt="" title="" height="auto" src="' + card.image + '" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="165"></td>\n' +
+            '                                        </tr>\n' +
+            '                                        </tbody>\n' +
+            '                                    </table>\n' +
+            '                                </td>\n' +
+            '                            </tr>\n' +
+            '                            <tr>\n' +
+            '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
+            '                                    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:16px;font-weight:bold;line-height:22px;text-align:center;">' + card.title + '</div>\n' +
+            '                                </td>\n' +
+            '                            </tr>\n' +
+            '                            <tr>\n' +
+            '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
+            '                                    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:center;">' + card.body + '</div>\n' +
+            '                                </td>\n' +
+            '                            </tr>\n' +
+            '                            <tr>\n' +
+            '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
+            '                                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;" align="center" border="0">\n' +
+            '                                        <tbody>\n' +
+            '                                        <tr>\n' +
+            '                                            <td style="border:none;border-radius:40px;color:#ffffff;cursor:auto;padding:10px 25px;" align="center" valign="middle" bgcolor="#1FBDF1">\n' +
+            '<a href="' + card.linktoaction + '"><p style="text-decoration:none;background:#1FBDF1;color:#ffffff;font-family:' + font + ';font-size:12px;font-weight:normal;line-height:120%;text-transform:none;margin:0px;">' + card.calltoaction + '</p> </a>\n' +
+            '                                            </td>\n' +
+            '                                        </tr>\n' +
+            '                                        </tbody>\n' +
+            '                                    </table>\n' +
+            '                                </td>\n' +
+            '                            </tr>\n' +
+            '                            </tbody>\n' +
+            '                        </table>\n' +
+            '                    </div>\n' +
+            '                    <!--[if mso | IE]>\n' +
+            '                    </td>';
+        var outtro = '<!--[if mso | IE]>\n' +
+            '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
+            '        <tr>\n' +
+            '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
+            '    <![endif]-->\n' +
+            '    <div style="margin:0px auto;max-width:600px;">\n' +
+            '        <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:0px;width:100%;" align="center" border="0">\n' +
+            '            <tbody>\n' +
+            '            <tr>\n' +
+            '                <td style="text-align:center;vertical-align:top;direction:ltr;font-size:0px;padding:20px 0px;">\n' +
+            '                    <!--[if mso | IE]>\n' +
+            '                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">\n' +
+            '                        <tr>\n' +
+            '                            <td style="vertical-align:undefined;width:600px;">\n' +
+            '                    <![endif]-->\n' +
+            '                    <p style="font-size:1px;margin:0px auto;border-top:1px solid #d4d4d4;width:100%;"></p>\n' +
+            '                    <!--[if mso | IE]><table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" style="font-size:1px;margin:0px auto;border-top:1px solid #d4d4d4;width:100%;" width="600"><tr><td style="height:0;line-height:0;"> </td></tr></table><![endif]-->\n' +
+            '                    <!--[if mso | IE]>\n' +
+            '                    </td><td style="vertical-align:undefined;width:50px;">\n' +
+            '                    <![endif]-->\n' +
+            '                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-spacing:0px;" align="left" border="0">\n' +
+            '                        <tbody>\n' +
+            '                        <tr>\n' +
+            '                            <td style="width:50px;"><img alt="" title="" height="auto" src="https://jobo.asia/img/logo.png" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="50"></td>\n' +
+            '                        </tr>\n' +
+            '                        </tbody>\n' +
+            '                    </table>\n' +
+            '                    <!--[if mso | IE]>\n' +
+            '                    </td><td style="vertical-align:undefined;width:200px;">\n' +
+            '                    <![endif]-->\n' +
+            '                    <div style="cursor:auto;color:#000000;font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:11px;line-height:22px;text-align:right;"><a href="https://goo.gl/awK5qg" style="color: #000000; text-decoration: none;">We are hiring</a></div>\n' +
+            '                    <!--[if mso | IE]>\n' +
+            '                    </td></tr></table>\n' +
+            '                    <![endif]-->\n' +
+            '                </td>\n' +
+            '            </tr>\n' +
+            '            </tbody>\n' +
+            '        </table>\n' +
+            '    </div>\n' +
+            '    <!--[if mso | IE]>\n' +
+            '    </td></tr></table>\n' +
+            '    <![endif]-->'
+
+
+        var htmlMail = '';
+
+        if (mail.description1) {
+            mail.description = mail.description1
+            htmlMail = htmlMail + header + '\n' +
+                '    <!--[if mso | IE]>\n' +
+                '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
+                '        <tr>\n' +
+                '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
+                '    <![endif]-->\n' +
+                '    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:left;">' + mail.description + '</div>\n' +
+                '    <!--[if mso | IE]>\n' +
+                '    </td></tr></table>\n' +
+                '    <![endif]-->';
+        }
+        if (mail.image) {
+            htmlMail = htmlMail + image
+        }
+        if (mail.description2) {
+            mail.description = mail.description2
+            htmlMail = htmlMail + '\n' +
+                '    <!--[if mso | IE]>\n' +
+                '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
+                '        <tr>\n' +
+                '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
+                '    <![endif]-->\n' +
+                '    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:left;">' + mail.description + '</div>\n' +
+                '    <!--[if mso | IE]>\n' +
+                '    </td></tr></table>\n' +
+                '    <![endif]-->';
+        }
+        if (mail.linktoaction) {
+            htmlMail = htmlMail + button
+
+        }
+        if (mail.description3) {
+            mail.description = mail.description3
+            htmlMail = htmlMail + '\n' +
+                '    <!--[if mso | IE]>\n' +
+                '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
+                '        <tr>\n' +
+                '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
+                '    <![endif]-->\n' +
+                '    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:left;">' + mail.description + '</div>\n' +
+                '    <!--[if mso | IE]>\n' +
+                '    </td></tr></table>\n' +
+                '    <![endif]-->';
+        }
+        if (mail.data) {
+            htmlMail = htmlMail + card_header
+            for (var i in mail.data) {
+
+                var card = mail.data[i]
+                htmlMail = htmlMail + '<td style="vertical-align:top;width:300px;">\n' +
+                    '                    <![endif]-->\n' +
+                    '                    <div class="mj-column-per-50 outlook-group-fix" style="vertical-align:top;display:inline-block;direction:ltr;font-size:13px;text-align:left;width:100%;">\n' +
+                    '                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">\n' +
+                    '                            <tbody>\n' +
+                    '                            <tr>\n' +
+                    '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
+                    '                                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-spacing:0px;" align="center" border="0">\n' +
+                    '                                        <tbody>\n' +
+                    '                                        <tr>\n' +
+                    '                                            <td style="width:165px;"><img alt="" title="" height="auto" src="' + card.image + '" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="165"></td>\n' +
+                    '                                        </tr>\n' +
+                    '                                        </tbody>\n' +
+                    '                                    </table>\n' +
+                    '                                </td>\n' +
+                    '                            </tr>\n' +
+                    '                            <tr>\n' +
+                    '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
+                    '                                    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:16px;font-weight:bold;line-height:22px;text-align:center;">' + card.title + '</div>\n' +
+                    '                                </td>\n' +
+                    '                            </tr>\n' +
+                    '                            <tr>\n' +
+                    '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
+                    '                                    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:center;">' + card.body + '</div>\n' +
+                    '                                </td>\n' +
+                    '                            </tr>\n' +
+                    '                            <tr>\n' +
+                    '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
+                    '                                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;" align="center" border="0">\n' +
+                    '                                        <tbody>\n' +
+                    '                                        <tr>\n' +
+                    '                                            <td style="border:none;border-radius:40px;color:#ffffff;cursor:auto;padding:10px 25px;" align="center" valign="middle" bgcolor="#1FBDF1">\n' +
+                    '<a href="' + card.linktoaction + '"><p style="text-decoration:none;background:#1FBDF1;color:#ffffff;font-family:' + font + ';font-size:12px;font-weight:normal;line-height:120%;text-transform:none;margin:0px;">' + card.calltoaction + '</p> </a>\n' +
+                    '                                            </td>\n' +
+                    '                                        </tr>\n' +
+                    '                                        </tbody>\n' +
+                    '                                    </table>\n' +
+                    '                                </td>\n' +
+                    '                            </tr>\n' +
+                    '                            </tbody>\n' +
+                    '                        </table>\n' +
+                    '                    </div>\n' +
+                    '                    <!--[if mso | IE]>\n' +
+                    '                    </td>';
+            }
+            htmlMail = htmlMail + card_footer
+        }
+        if (mail.description4) {
+            mail.description = mail.description4
+            htmlMail = htmlMail + '\n' +
+                '    <!--[if mso | IE]>\n' +
+                '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
+                '        <tr>\n' +
+                '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
+                '    <![endif]-->\n' +
+                '    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:left;">' + mail.description + '</div>\n' +
+                '    <!--[if mso | IE]>\n' +
+                '    </td></tr></table>\n' +
+                '    <![endif]-->';
+        }
+        if (mail.outtro) {
+            htmlMail = htmlMail + outtro
+        }
+
+        htmlMail = htmlMail + footer
+        sendEmail(email, mail, htmlMail, notiId)
+            .then(notiId => resolve(notiId))
+            .catch(err => reject(err));
+    });
+}
+
+function startSend(userData, mail, channel, notiId) {
+    return new Promise((sResolve, sReject) => {
+        console.log('startSend', notiId, mail.title);
+
+        const sendEmailTempPromise = new Promise((resolve, reject) => {
+            if (userData.email && userData.wrongEmail != true && channel.letter && userData.email.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/)) {
+                sendEmailTemplate(userData.email, mail, notiId)
+                    .then(notiId => resolve({
+                        notiId,
+                        letter: true
+                    }))
+                    .catch(err => resolve({notiId, letter: false}));
+            } else resolve({notiId, letter: false});
+        });
+
+        const sendNotificationToGivenUserWeb = new Promise((resolve, reject) => {
+            if (userData.webToken && channel.web) {
+                sendNotificationToGivenUser(userData.webToken, mail, 'web', notiId).then(notiId => resolve({
+                    notiId,
+                    web: true
+                })).catch(err => resolve({notiId, web: false}));
+            } else resolve({notiId, web: false});
+
+        });
+
+        const sendNotificationToGivenUserApp = new Promise((resolve, reject) => {
+            if (userData.mobileToken && channel.mobile) {
+                sendNotificationToGivenUser(userData.mobileToken, mail, 'app', notiId).then(notiId => resolve({
+                    notiId,
+                    mobile: true
+                })).catch(err => resolve({notiId, mobile: false}));
+            } else resolve({notiId, mobile: false});
+
+        });
+
+        const sendMessengerPromise = new Promise((resolve, reject) => {
+            if (userData.messengerId && channel.messenger) {
+                sendMessenger(userData.messengerId, mail, notiId).then(notiId => resolve({
+                    notiId,
+                    messenger: true
+                })).catch(err => reject(err));
+            } else resolve({notiId, messenger: false});
+        });
+
+        Promise.all([
+            sendEmailTempPromise,
+            sendNotificationToGivenUserWeb,
+            sendNotificationToGivenUserApp,
+            sendMessengerPromise
+        ])
+            .then(array => sResolve(array))
+            .catch(err => sReject(err));
+    });
+}
+
+
+function getPaginatedItems(items, page) {
+    var page = page || 1,
+        per_page = 15,
+        offset = (page - 1) * per_page,
+        paginatedItems = _.rest(items, offset).slice(0, per_page);
+    return {
+        page: page,
+        per_page: per_page,
+        total: items.length,
+        total_pages: Math.ceil(items.length / per_page),
+        data: paginatedItems
+    };
+}
+
+
+app.get('/getfbPost', function (req, res) {
+    let {p: page, q: query} = req.query
+    FacebookPost.find()
+        .then(posts => {
+            var sorted = _.sortBy(posts, function (card) {
+                return -card.time
+            });
+            res.status(200).json(getPaginatedItems(sorted, page))
+        })
+        .catch(err => res.status(500).json(err));
 });
+
+app.get('/firebase', (req, res) => {
+    facebookPostRef.once('value')
+        .then(_posts => {
+            const posts = _posts.val();
+            console.log(Object.keys(posts).length);
+            return Promise.all(Object.keys(posts).map(key => {
+
+                if (!posts[key]) res.status(403).json('Facebook post data is required');
+                if (!posts[key].postId) posts[key].postId = mongoose.Types.ObjectId();
+                const mgPost = new FacebookPost(posts[key]);
+                return mgPost.save();
+            }));
+        })
+        .then(posts => res.status(200).json(posts))
+        .catch(err => res.status(500).json(err));
+})
+app.post('/newPost', (req, res, next) => {
+    const post = req.body;
+
+    if (!post) res.status(403).json('Facebook post data is required');
+    if (!post.postId) post.postId = mongoose.Types.ObjectId();
+    const mgPost = new FacebookPost(post)
+    mgPost.save()
+        .then(post => {
+            if (post.time > Date.now() && post.time < Date.now() + 86400 * 1000) {
+                console.log('facebook', b++);
+                let promise = Promise.resolve({...post, schedule: true});
+                schedule.scheduleJob(post.time, function () {
+                    promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
+                });
+                return promise;
+            }
+        })
+        .then(schedulePost => res.status(200).json(schedulePost))
+        .catch(err => res.status(500).json(err));
+});
+
+app.get('/', function (req, res) {
+    res.send('Will Send ' + b + ' , sent ' + a);
+});
+
+function PublishFacebook(to, content, poster, postId) {
+    return new Promise((resolve, reject) => {
+        a++
+        console.log('scheduleJob_PublishFacebook_run', to, poster, postId)
+        var accessToken = facebookAccount[poster]
+        if (to && content && accessToken) {
+            if (content.image) {
+                graph.post(to + "/photos?access_token=" + accessToken, {
+                        "url": content.image,
+                        "caption": content.text
+                    },
+                    function (err, res) {
+                        // returns the post id
+                        if (err) {
+                            console.log(err.message, to, poster);
+                            // facebookPostRef.child(postId).update({ sent_error: err.message })
+                            FacebookPost.findOneAndUpdate({postId}, {
+                                sent_error: err.message
+                            }, {new: true})
+                                .then(updatedPost => resolve(updatedPost))
+                                .catch(err => reject(err));
+                        } else {
+                            var id = res.id;
+                            console.log(id);
+                            // facebookPostRef.child(postId).update({ id, sent: Date.now() })
+                            FacebookPost.findOneAndUpdate({postId}, {
+                                id,
+                                sent: Date.now()
+                            }, {new: true})
+                                .then(updatedPost => resolve(updatedPost))
+                                .catch(err => reject(err));
+                        }
+                    });
+            } else {
+                graph.post(to + "/feed?access_token=" + accessToken, {"message": content.text},
+                    function (err, res) {
+                        // returns the post id
+                        if (err) {
+                            console.log(err.message, to, poster);
+                            // facebookPostRef.child(postId).update({ sent_error: err.message })
+                            FacebookPost.findOneAndUpdate({postId}, {
+                                sent_error: err.message
+                            }, {new: true})
+                                .then(updatedPost => resolve(updatedPost))
+                                .catch(err => reject(err));
+                        } else {
+                            var id = res.id;
+                            console.log(id);
+                            // facebookPostRef.child(postId).update({ id, sent: Date.now() })
+                            FacebookPost.findOneAndUpdate({postId}, {id, sent: Date.now()}, {new: true})
+                                .then(updatedPost => resolve(updatedPost))
+                                .catch(err => reject(err));
+                        }
+                    });
+            }
+        }
+    });
+}
+
 function PublishPost(userId, text, accessToken) {
     if (userId && text && accessToken) {
-        graph.post(userId + "/feed?access_token=" + accessToken,
-            {
+        graph.post(userId + "/feed?access_token=" + accessToken, {
                 "message": text.text,
                 "link": text.link
             },
@@ -245,8 +862,7 @@ function PublishPost(userId, text, accessToken) {
 function PublishPhoto(userId, text, accessToken) {
     if (userId && text && accessToken) {
 
-        graph.post(userId + "/photos?access_token=" + accessToken,
-            {
+        graph.post(userId + "/photos?access_token=" + accessToken, {
                 "url": text.image,
                 "caption": text.text
             },
@@ -262,8 +878,7 @@ function PublishPhoto(userId, text, accessToken) {
 
 function PublishComment(postId, text, accessToken) {
     if (postId && text && accessToken) {
-        graph.post(postId + "/comments?access_token=" + accessToken,
-            {
+        graph.post(postId + "/comments?access_token=" + accessToken, {
                 "message": text
             },
             function (err, res) {
@@ -293,13 +908,12 @@ function getPaginatedItems(items, page) {
 
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     var R = 6371; // Radius of the earth in km
-    var dLat = deg2rad(Number(lat2) - Number(lat1));  // deg2rad below
+    var dLat = deg2rad(Number(lat2) - Number(lat1)); // deg2rad below
     var dLon = deg2rad(Number(lon2) - Number(lon1));
     var a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2)
-    ;
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     var x = R * c; // Distance in km
     var n = parseFloat(x);
@@ -310,7 +924,6 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 function deg2rad(deg) {
     return deg * (Math.PI / 180)
 }
-
 
 
 // automate Job post facebook
