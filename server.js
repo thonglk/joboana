@@ -210,7 +210,6 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
                 }
             ]
         }
-        console.log('sendEmail',addressTo)
 
         // send mail with defined transport object
         mailTransport.sendMail(mailOptions, (error, info) => {
@@ -286,17 +285,24 @@ function keygen() {
 }
 
 function addTrackingEmail(notiId, url, t = 'o', p = 'l') {
-
-    var platform = configP[p]
-    var type = configT[t]
-    joboPxl.database().ref('/links/' + notiId + p + t)
-        .update({
-            url, linkId: notiId, platform, type
-        })
-    if (t == 'o') {
-        return CONFIG.AnaURL + '/l/' + notiId + p + t
+    if(url){
+        var trackUrl = ''
+        var platform = configP[p]
+        var type = configT[t]
+        joboPxl.database().ref('/links/' + notiId + p + t)
+            .update({
+                url, linkId: notiId, platform, type
+            })
+        console.log()
+        if (t == 'o') {
+            trackUrl =  CONFIG.AnaURL + '/l/' + notiId + p + t
+        } else {
+            trackUrl =  CONFIG.WEBURL + '/l/' + notiId + p + t
+        }
+        console.log('url',trackUrl)
+        return trackUrl
     }
-    return CONFIG.WEBURL + '/l/' + notiId + p + t
+
 
 
 }
@@ -332,7 +338,6 @@ function tracking(notiId, platform, url, type = 'open') {
 
 function sendEmailTemplate(email, mail, notiId) {
     return new Promise((resolve, reject) => {
-
         var card = {}
 
         var header = '<!doctype html>\n' +
@@ -437,6 +442,8 @@ function sendEmailTemplate(email, mail, notiId) {
             `<img src="${addTrackingEmail(notiId, '/jobo.png', 'o', 'l')}"/>` +
             '\n' +
             '<div class="mj-container">';
+
+
         var footer = '</div>\n' +
             '</body>\n' +
             '\n' +
@@ -650,6 +657,7 @@ function sendEmailTemplate(email, mail, notiId) {
         if (mail.image) {
             htmlMail = htmlMail + image
         }
+
         if (mail.description2) {
             mail.description = mail.description2
             htmlMail = htmlMail + '\n' +
@@ -680,6 +688,7 @@ function sendEmailTemplate(email, mail, notiId) {
                 '    </td></tr></table>\n' +
                 '    <![endif]-->';
         }
+
         if (mail.data) {
             htmlMail = htmlMail + card_header
             for (var i in mail.data) {
