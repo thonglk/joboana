@@ -1,6 +1,7 @@
 // grab the packages we need
 var firebase = require("firebase-admin");
 var express = require('express');
+var axios = require('axios');
 
 var app = express();
 var port = process.env.PORT || 8081;
@@ -56,7 +57,32 @@ import FacebookPost from './models/facebook-post';
 var uri = 'mongodb://joboapp:joboApp.1234@ec2-54-157-20-214.compute-1.amazonaws.com:27017/joboapp';
 
 mongoose.connect(uri);
+
 console.log('Connected to MongoDB at ', uri);
+
+
+const MongoClient = require('mongodb');
+
+
+var md, userCol, profileCol, storeCol, jobCol, notificationCol, staticCol, leadCol, emailChannelCol
+
+MongoClient.connect(uri, function (err, db) {
+    console.log(err);
+
+    md = db;
+    userCol = md.collection('user');
+    profileCol = md.collection('profile');
+    storeCol = md.collection('store');
+    jobCol = md.collection('job');
+    notificationCol = md.collection('notification');
+    staticCol = md.collection('static');
+    leadCol = md.collection('lead');
+    emailChannelCol = md.collection('emailChannel');
+
+    console.log("Connected correctly to server.");
+    init();
+});
+
 
 // TODO(DEVELOPER): Configure your email transport.
 
@@ -102,22 +128,15 @@ var publishChannel = {
         pageId: '385066561884380',
         token: 'EAAEMfZASjMhgBAOWKcfIFZBPvH1OSdZAg2VFH103o0cNimDFg0wxtcSn5E3eaY4C8sDGQYBiaSZAxY8WRpaIj51hB2UfYZAqk3Wd1UiUoc393wgRZBpkiFR1iEGjfb1oE272ZCxkxECLiT1x6UcqYRZCemdpVmt1TnPupJgL8jlcdgZDZD'
     },
-    viecLamNhaHang: {
-        pageId: '282860701742519',
-        token: 'EAAEMfZASjMhgBAIeW7dEVfhrQjZCtKszDRfuzsn1nDhOTaZBsejy1Xf71XxbvZBlSSHaFBg5L9eSwmNTDURRxdAetC9V1cArFnV1dM7sISSZB7weBIycRagE2RZCGZCaiQbDpFuy2cXiVyynKWpDbz9SM29yU273UkynZCBgmxU74gZDZD'
-    }
 };
 
 
 var db = joboTest.database();
 var db2 = joboPxl.database();
 
-var firsttime;
-
 
 var configRef = db.ref('config');
 var notificationRef = db2.ref('notihihi')
-var facebookPostRef = db2.ref('facebookPost');
 
 var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead, dataEmail, Lang
 var groupRef = db.ref('groupData')
@@ -148,11 +167,6 @@ function init() {
     })
 
 
-    notificationRef.once('value', function (snap) {
-        dataNoti = snap.val()
-    })
-
-
     var startTime = Date.now();
     var endTime = startTime + 86400 * 1000;
     var a = 0, b = 0;
@@ -171,17 +185,26 @@ function init() {
         }
     });
 
-    FacebookPost.find()
+    notificationCol.find({'time': {$gt: startTime, $lt: endTime}}, function (err, notis) {
+        notis.forEach(function (noti) {
+            console.log('noti', a++);
+            schedule.scheduleJob(noti.time, function () {
+                console.log('start', noti.time);
+                startSend(noti.userData, noti.mail, noti.channel, noti.notiId)
+            })
+        })
+    })
+
+
+    FacebookPost.find({'time': {$gt: startTime, $lt: endTime}})
         .then(posts => {
             posts.forEach(function (post) {
-                if (post.time > startTime && post.time < endTime) {
-                    console.log('facebook', b++);
-                    let promise = Promise.resolve({...post, schedule: true});
-                    schedule.scheduleJob(post.time, function () {
-                        promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
-                    });
-                    return promise;
-                }
+                console.log('facebook', b++);
+                let promise = Promise.resolve({...post, schedule: true});
+                schedule.scheduleJob(post.time, function () {
+                    promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
+                });
+                return promise;
             })
 
         })
@@ -211,21 +234,19 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
             ]
         }
 
+
         // send mail with defined transport object
         mailTransport.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.log('Error sent email', addressTo)
-
                 reject(error);
             }
 
-            console.log('Email sent:', notiId + addressTo)
+            console.log('Email sent:', notiId + ' ' + addressTo)
 
-            // console.log('Message sent: %s', info.messageId);
-            if (notiId) {
-                notificationRef.child(notiId).update({mail_sent: Date.now()})
-            }
-            resolve(notiId);
+            notificationCol.updateOne({notiId}, {$set:{letter_sent: Date.now()}})
+                .then(() => resolve(notiId))
+                .catch(err => reject(err))
 
 
         });
@@ -285,7 +306,7 @@ function keygen() {
 }
 
 function addTrackingEmail(notiId, url, t = 'o', p = 'l') {
-    if(url){
+    if (url) {
         var trackUrl = ''
         var platform = configP[p]
         var type = configT[t]
@@ -295,14 +316,13 @@ function addTrackingEmail(notiId, url, t = 'o', p = 'l') {
             })
         console.log()
         if (t == 'o') {
-            trackUrl =  CONFIG.AnaURL + '/l/' + notiId + p + t
+            trackUrl = CONFIG.AnaURL + '/l/' + notiId + p + t
         } else {
-            trackUrl =  CONFIG.WEBURL + '/l/' + notiId + p + t
+            trackUrl = CONFIG.WEBURL + '/l/' + notiId + p + t
         }
-        console.log('url',trackUrl)
+        console.log('url', trackUrl)
         return trackUrl
     }
-
 
 
 }
@@ -327,8 +347,8 @@ function tracking(notiId, platform, url, type = 'open') {
         var data = {}
         data[platform + '_' + type] = Date.now()
         console.log(data)
-        notificationRef.child(notiId)
-            .update(data)
+
+        notificationCol.updateOne({notiId}, {$set:data})
             .then(() => resolve({notiId, url}))
             .catch(err => {
                 reject(err);
@@ -837,22 +857,26 @@ function getPaginatedItems(items, page) {
 function sendMessenger(messengerId, noti, key) {
     return new Promise((resolve, reject) => {
         var url = 'https://jobobot.herokuapp.com/noti';
+
         var param = {
             messages: {
-                text: noti.body,
-                calltoaction: noti.calltoaction,
-                linktoaction: noti.linktoaction,
-                image: noti.image
+                text: noti.body || '',
+                calltoaction: noti.calltoaction || '',
+                linktoaction: noti.linktoaction || '',
+                image: noti.image || ''
             },
             recipientIds: messengerId
         }
         axios.post(url, param)
             .then(function (response) {
                 console.log('messenger sent:' + key)
-                notificationRef.child(key).update({messenger_sent: Date.now()});
-                resolve(key);
+                notificationCol.updateOne({notiId: key},{$set:{messenger_sent: Date.now()}} )
+                    .then(() => resolve(key))
+                    .catch(function (error) {
+                        console.log(error);
+                    });
             })
-            // .then(() => resolve(key))
+            .then(() => resolve(key))
             .catch(function (error) {
                 console.log(error);
             });
@@ -885,11 +909,13 @@ function sendNotificationToGivenUser(registrationToken, noti, type, key) {
                 if (response.successCount == 1 && type && key) {
                     var data = {}
                     data[type + '_sent'] = Date.now()
-                    console.log(type + ' sent', key);
-                    return notificationRef.child(key).update(data);
+                    return notificationCol.updateOne({notiId: key}, {$set:data})
                 }
             })
-            .then(() => resolve(key))
+            .then(function () {
+                console.log(type + ' sent', key);
+                resolve(key)
+            })
             .catch(function (error) {
                 console.log("Error sending message:", error);
                 reject(error);
@@ -909,22 +935,6 @@ app.get('/getfbPost', function (req, res) {
         .catch(err => res.status(500).json(err));
 });
 
-app.get('/firebase', (req, res) => {
-    facebookPostRef.once('value')
-        .then(_posts => {
-            const posts = _posts.val();
-            console.log(Object.keys(posts).length);
-            return Promise.all(Object.keys(posts).map(key => {
-
-                if (!posts[key]) res.status(403).json('Facebook post data is required');
-                if (!posts[key].postId) posts[key].postId = mongoose.Types.ObjectId();
-                const mgPost = new FacebookPost(posts[key]);
-                return mgPost.save();
-            }));
-        })
-        .then(posts => res.status(200).json(posts))
-        .catch(err => res.status(500).json(err));
-})
 app.post('/newPost', (req, res, next) => {
     const post = req.body;
 
@@ -946,6 +956,34 @@ app.post('/newPost', (req, res, next) => {
         .catch(err => res.status(500).json(err));
 });
 
+app.post('/newNoti', (req, res, next) => {
+    const noti = req.body;
+
+    if (!noti) res.status(403).json('Noti post data is required');
+    if (!noti.notiId) noti.notiId = keygen()
+    notificationCol.insert(noti, function (err, data) {
+        if (err) {
+            res.send({code: 'error', err})
+        } else {
+
+            if (noti.time > Date.now() && noti.time < Date.now() + 86400 * 1000) {
+                console.log('noti', a++);
+                schedule.scheduleJob(noti.time, function () {
+                    startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+                        console.log('array', array)
+                    })
+                })
+                res.send({code: 'success', msg: 'scheduled', id: noti.notiId})
+            } else {
+                res.send({code: 'success', msg: 'saved', id: noti.notiId})
+
+            }
+
+        }
+    })
+
+
+});
 
 function PublishFacebook(to, content, poster, postId) {
     return new Promise((resolve, reject) => {
@@ -1096,4 +1134,3 @@ function deg2rad(deg) {
 // start the server
 http.createServer(app).listen(port);
 console.log('Server started!', port);
-init();

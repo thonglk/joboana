@@ -82,7 +82,7 @@ Mình ghi thông tin chi tiết tại link: ${jobUrl}, các bạn xem kĩ và nh
     },
     9: function ({ storeName, address = '', jobName = '', salary = '', working_type = '', time = '', jobUrl = '', storeUrl = '', figure = '', unit = '', experience = '', sex = '', deadline = '', description = '', contact = '0971456089 (Mai)' }) {
         const text = `Không có công việc nào việc nhẹ nhàn hạ lương cao đâu các bạn ạ, Sinh viên xác định kiếm thêm thu nhập thì chịu khó hơi vất vả một tý.\n\n
-Mình có tuyển nhân viên ${jobName} ở ${storeName} tại (địa chỉ), công việc sẽ không nhàn nhưng đảm bảo chân chính và ổn định\n
+Mình có tuyển nhân viên ${jobName} ở ${storeName} tại ${address}, công việc sẽ không nhàn nhưng đảm bảo chân chính và ổn định\n
 ${time}${figure}${unit}
 ${salary}${experience}${sex}
 Sẽ tạo điều kiện cho sinh viên muốn đi làm kiếm thêm thu nhập vì mình biết các bạn vừa học, vừa làm rất khó xếp lịch\n\n
