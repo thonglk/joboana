@@ -210,6 +210,8 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
                 }
             ]
         }
+        console.log('sendEmail',addressTo)
+
         // send mail with defined transport object
         mailTransport.sendMail(mailOptions, (error, info) => {
             if (error) {
