@@ -231,7 +231,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
     });
 }
 app.get('/', function (req, res, next) {
-    res.send('Jobo'+ a +' '+ b)
+    res.send('Jobo' + a + ' ' + b)
 })
 app.get('/l/:queryString', function (req, res, next) {
     const queryString = req.params.queryString;
@@ -258,7 +258,11 @@ app.get('/l/:queryString', function (req, res, next) {
                 'Pragma': 'no-cache',
                 'Expires': '0'
             });
-            res.redirect(result.url);
+            if (t == 'o') {
+                res.redirect(result.url);
+            } else {
+                res.json(result)
+            }
         })
         .catch(err => {
             console.log(err);
@@ -287,11 +291,10 @@ function addTrackingEmail(notiId, url, t = 'o', p = 'l') {
         .update({
             url, linkId: notiId, platform, type
         })
-    if(t == 'o'){
-        return CONFIG.AnaURL + '/l/'+ notiId + p + t
+    if (t == 'o') {
+        return CONFIG.AnaURL + '/l/' + notiId + p + t
     }
-    return CONFIG.WEBURL+ '/l/'+ notiId + p + t
-
+    return CONFIG.WEBURL + '/l/' + notiId + p + t
 
 
 }
