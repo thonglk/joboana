@@ -287,7 +287,11 @@ function addTrackingEmail(notiId, url, t = 'o', p = 'l') {
         .update({
             url, linkId: notiId, platform, type
         })
-    return '/l/'+ notiId + p + t
+    if(t == 'o'){
+        return CONFIG.AnaURL + '/l/'+ notiId + p + t
+    }
+    return CONFIG.WEBURL+ '/l/'+ notiId + p + t
+
 
 
 }
