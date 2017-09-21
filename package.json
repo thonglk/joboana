@@ -1,13 +1,13 @@
 {
   "name": "JoboServer",
-  "main": "app.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node app.js",
+    "start": "node server.js",
     "dev": "better-npm-run start-dev"
   },
   "betterScripts": {
     "start-dev": {
-      "command": "nodemon app.js",
+      "command": "nodemon server.js",
       "env": {
         "NODE_PATH": "./",
         "NODE_ENV": "development",

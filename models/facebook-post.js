@@ -1,7 +1,16 @@
-import mongoose, { Schema } from 'mongoose';
-import timestamps from 'mongoose-timestamp';
+'use strict';
 
-const postSchema = new Schema({
+var _mongoose = require('mongoose');
+
+var _mongoose2 = _interopRequireDefault(_mongoose);
+
+var _mongooseTimestamp = require('mongoose-timestamp');
+
+var _mongooseTimestamp2 = _interopRequireDefault(_mongooseTimestamp);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var postSchema = new _mongoose.Schema({
     id: {
         type: String,
         index: true,
@@ -10,7 +19,7 @@ const postSchema = new Schema({
     jobId: String,
     postId: {
         type: String,
-        index: {unique: true},
+        index: { unique: true }
     },
     poster: {
         type: String,
@@ -51,5 +60,5 @@ const postSchema = new Schema({
 postSchema.set('toJSON', { virtuals: true });
 postSchema.set('toObject', { virtuals: true });
 
-postSchema.plugin(timestamps);
-module.exports = mongoose.model('FacebookPost', postSchema);
+postSchema.plugin(_mongooseTimestamp2.default);
+module.exports = _mongoose2.default.model('FacebookPost', postSchema);

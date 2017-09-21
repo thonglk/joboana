@@ -51,8 +51,8 @@ var staticData = {
 }
 
 //Mongoose//
-import mongoose from 'mongoose';
-import FacebookPost from './models/facebook-post';
+var mongoose = require('mongoose');
+var FacebookPost = require('./models/facebook-post');
 
 var uri = 'mongodb://joboapp:joboApp.1234@ec2-54-157-20-214.compute-1.amazonaws.com:27017/joboapp';
 
@@ -163,7 +163,10 @@ function init() {
     })
     configRef.on('value', function (snap) {
         CONFIG = snap.val()
-        facebookAccount = CONFIG.facebookToken
+        facebookAccount = CONFIG.facebookAccount
+        var defaut = facebookAccount.thong.access_token
+        graph.setAccessToken(defaut);
+
     })
 
 
@@ -200,7 +203,7 @@ function init() {
         .then(posts => {
             posts.forEach(function (post) {
                 console.log('facebook', b++);
-                let promise = Promise.resolve({...post, schedule: true});
+                let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
                 schedule.scheduleJob(post.time, function () {
                     promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
                 });
@@ -244,7 +247,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
 
             console.log('Email sent:', notiId + ' ' + addressTo)
 
-            notificationCol.updateOne({notiId}, {$set:{letter_sent: Date.now()}})
+            notificationCol.updateOne({notiId}, {$set: {letter_sent: Date.now()}})
                 .then(() => resolve(notiId))
                 .catch(err => reject(err))
 
@@ -292,6 +295,30 @@ app.get('/l/:queryString', function (req, res, next) {
         });
 });
 
+
+app.get('/viewFBpost', function (req, res) {
+    let {id} = req.query
+    viewFBpost(id).then(function (result) {
+        res.send(result)
+    }).catch(function (err) {
+        res.send(err)
+    })
+})
+
+function viewFBpost(id) {
+    return new Promise(function (resolve,reject) {
+        graph.get(id + "/?fields=comments,reactions", function (err, result) {
+            if (err) {
+                console.log(err)
+                reject(err)
+            } else {
+                console.log(result)
+                resolve(result)
+            }
+        })
+    })
+
+}
 
 function keygen() {
 
@@ -348,7 +375,7 @@ function tracking(notiId, platform, url, type = 'open') {
         data[platform + '_' + type] = Date.now()
         console.log(data)
 
-        notificationCol.updateOne({notiId}, {$set:data})
+        notificationCol.updateOne({notiId}, {$set: data})
             .then(() => resolve({notiId, url}))
             .catch(err => {
                 reject(err);
@@ -870,7 +897,7 @@ function sendMessenger(messengerId, noti, key) {
         axios.post(url, param)
             .then(function (response) {
                 console.log('messenger sent:' + key)
-                notificationCol.updateOne({notiId: key},{$set:{messenger_sent: Date.now()}} )
+                notificationCol.updateOne({notiId: key}, {$set: {messenger_sent: Date.now()}})
                     .then(() => resolve(key))
                     .catch(function (error) {
                         console.log(error);
@@ -909,7 +936,7 @@ function sendNotificationToGivenUser(registrationToken, noti, type, key) {
                 if (response.successCount == 1 && type && key) {
                     var data = {}
                     data[type + '_sent'] = Date.now()
-                    return notificationCol.updateOne({notiId: key}, {$set:data})
+                    return notificationCol.updateOne({notiId: key}, {$set: data})
                 }
             })
             .then(function () {
@@ -945,7 +972,7 @@ app.post('/newPost', (req, res, next) => {
         .then(post => {
             if (post.time > Date.now() && post.time < Date.now() + 86400 * 1000) {
                 console.log('facebook', b++);
-                let promise = Promise.resolve({...post, schedule: true});
+                let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
                 schedule.scheduleJob(post.time, function () {
                     promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
                 });
@@ -989,7 +1016,7 @@ function PublishFacebook(to, content, poster, postId) {
     return new Promise((resolve, reject) => {
         a++
         console.log('scheduleJob_PublishFacebook_run', to, poster, postId)
-        var accessToken = facebookAccount[poster]
+        var accessToken = facebookAccount[poster].access_token
         if (to && content && accessToken) {
             if (content.image) {
                 graph.post(to + "/photos?access_token=" + accessToken, {
@@ -1129,7 +1156,167 @@ function deg2rad(deg) {
 
 
 // automate Job post facebook
+function getLongLiveToken(shortLiveToken) {
+    return new Promise((resolve, reject) => {
+        const url = `https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=295208480879128&client_secret=4450decf6ea88c391f4100b5740792ae&fb_exchange_token=${shortLiveToken}`;
+        axios.get(url)
+            .then(res => resolve(res.data))
+            .catch(err => {
+                reject(err.response);
+            });
+    });
+}
 
+function getCodeRedeem(longLiveToken, debug) {
+    return new Promise((resolve, reject) => {
+        const url = `https://graph.facebook.com/oauth/client_code?access_token=${longLiveToken}&client_id=295208480879128&client_secret=4450decf6ea88c391f4100b5740792ae&redirect_uri=https%3A%2F%2Fjoboapp.com`;
+        axios.get(url)
+            .then(res => {
+                let result = {};
+                if (debug) result = Object.assign({}, debug, {code: res.data.code});
+                else result = res.data;
+                resolve(result);
+            })
+            .catch(err => {
+                let result = {};
+                if (debug) result = Object.assign({}, debug, {err: err.response});
+                else result = err.response;
+                reject(result);
+            });
+    });
+}
+
+function redeemToken(redeemCode, redeem) {
+    return new Promise((resolve, reject) => {
+        const url = `https://graph.facebook.com/oauth/access_token?code=${redeemCode}&client_id=295208480879128&redirect_uri=https%3A%2F%2Fjoboapp.com`;
+        axios.get(url)
+            .then(res => {
+                let result = {};
+                if (redeem) result = Object.assign({}, redeem, {access_token: res.data.access_token});
+                else result = res.data;
+                resolve(result);
+            })
+            .catch(err => {
+                let result = {};
+                if (redeem) result = Object.assign({}, redeem, {err: err.response});
+                else result = err.response;
+                reject(result);
+            });
+    });
+}
+
+function debugToken(longLiveToken, key, token) {
+    return new Promise((resolve, reject) => {
+        const appToken = '295208480879128|pavmPhKnN9VWZXLC6TdxLxoYFiY'
+        const url = `https://graph.facebook.com/debug_token?input_token=${longLiveToken}&access_token=${appToken}`;
+
+        axios.get(url)
+            .then(res => {
+                let result = {};
+                if (key) result = Object.assign({}, {data: res.data}, {key, token});
+                else result = res.data;
+                resolve(result)
+            })
+            .catch(err => {
+                let result = {};
+                if (key) result = Object.assign({}, {err: err.response}, {key, token});
+                else result = err.response;
+                resolve(result);
+            });
+
+    });
+}
+
+function newToken(shortLiveToken) {
+    return new Promise((resolve, reject) => {
+        getLongLiveToken(shortLiveToken)
+            .then(data => getCodeRedeem(data.access_token))
+            .then(data => redeemToken(data.code))
+            .then(data => resolve(data))
+            .catch(err => reject(err));
+    });
+}
+
+function checkAndUpdateToken(expiredDate = 5) {
+    return new Promise((resolve, reject) => {
+        let debugTokens = {};
+        configRef.child('facebookAccount').once('value')
+            .then(_tokens => {
+                const tokens = _tokens.val();
+                debugTokens = tokens;
+                return Promise.all(Object.keys(tokens).map(key => debugToken(tokens[key].access_token, key, tokens[key].access_token)));
+            })
+            .then(debugs => {
+                return Promise.all(debugs.map(debug => {
+                    if (debug.data && debug.data.expires_at && ((parseInt(debug.data.expires_at) - Date.now() / 1000) / 24 / 60 / 60 <= expiredDate)) {
+                        return getCodeRedeem(debug.token, debug);
+                    } else return Promise.resolve(debug);
+                }));
+            })
+            .then(redeems => {
+                return Promise.all(redeems.map(redeem => {
+                    if (redeem.code) return redeemToken(redeem.code, redeem);
+                    else return Promise.resolve(redeem);
+                }));
+            })
+            .then(newTokens => {
+                return Promise.all(newTokens.map(newToken => {
+                    if (newToken.access_token) return configRef.child('facebookAccount').child(newToken.key).update({access_token: newToken.access_token});
+                    else return Promise.resolve(newToken);
+                }));
+            })
+            .then(data => resolve(data))
+            .catch(err => reject(err));
+    });
+}
+
+app.get('/token', (req, res, next) => {
+    const {expiredDate} = req.query;
+    checkAndUpdateToken(expiredDate)
+        .then(tokens => res.status(200).json(tokens))
+        .catch(err => {
+            console.log(err);
+            res.send(err);
+        });
+})
+
+app.get('/fbLLiveToken', (req, res, next) => {
+    const {accessToken, key, area = 'hcm ', userId = 'thonglk'} = req.query;
+    getLongLiveToken(accessToken)
+        .then(data => {
+            configRef.child('facebookAccount').child(key).update({access_token: data.access_token, key, area, userId})
+                .then(() => res.json(data))
+        })
+        .catch(err => res.status(err.status).json(err.data));
+});
+
+app.get('/fbRedeemCode', (req, res, next) => {
+    const {accessToken} = req.query;
+    getCodeRedeem(accessToken)
+        .then(data => res.status(200).json(data))
+        .catch(err => res.status(err.status).json(err.data));
+});
+
+app.get('/fbRedeemToken', (req, res, next) => {
+    const {accessToken} = req.query;
+    redeemToken(accessToken)
+        .then(data => res.status(200).json(data))
+        .catch(err => res.status(err.status).json(err.data));
+});
+
+app.get('/fbDebugToken', (req, res, next) => {
+    const {accessToken} = req.query;
+    debugToken(accessToken)
+        .then(data => res.status(200).json(data))
+        .catch(err => res.status(err.status).json(err.data));
+});
+
+app.get('/fbNewToken', (req, res, next) => {
+    const {accessToken} = req.query;
+    newToken(accessToken)
+        .then(data => res.status(200).json(data))
+        .catch(err => res.status(err.status).json(err.data));
+});
 
 // start the server
 http.createServer(app).listen(port);
