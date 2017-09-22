@@ -296,24 +296,95 @@ app.get('/l/:queryString', function (req, res, next) {
 });
 
 
-app.get('/viewFBpost', function (req, res) {
-    let {id} = req.query
-    viewFBpost(id).then(function (result) {
+app.get('/searchFacebook', function (req,res) {
+    let {type,q} = req.query
+
+    var searchOptions = {q, type};
+
+    graph.search(searchOptions, function(err, result) {
+        console.log(result); // {data: [{id: xxx, from: ...}, {id: xxx, from: ...}]}
         res.send(result)
+    });
+})
+app.get('/viewFBpost', function (req, res) {
+    const { access_token } = req.query;
+    if (access_token) graph.setAccessToken(access_token);
+    fetchFBPost().then(function (result) {
+        res.status(200).json(result);
     }).catch(function (err) {
-        res.send(err)
+        res.status(500).send(err);
     })
 })
 
-function viewFBpost(id) {
-    return new Promise(function (resolve,reject) {
-        graph.get(id + "/?fields=comments,reactions", function (err, result) {
+function fetchFBPost() {
+    return new Promise((resolve, reject) => {
+        FacebookPost.find({ id: { $ne: null } })
+            .then(posts => {
+                return Promise.all(posts.map(post => {
+                    return viewFBpost(post._doc);
+                }));
+            })
+            .then(posts => {
+                console.log('obj');
+                return Promise.all(posts.map(post => {
+                    const check = {
+                        at: Date.now()
+                    }
+
+                    let reactions = {
+                        haha: 0,
+                        like: 0,
+                        love: 0,
+                        wow: 0,
+                        sad: 0,
+                        angry: 0
+                    };
+
+                    let error = null;
+                    let comments = 0;
+
+                    if (post.err) {
+                        error = post.err;
+                    } else if (post.result && post.result.reactions) reactions = {
+                        haha: post.result.reactions.data.filter(haha => haha.type === 'HAHA').length,
+                        like: post.result.reactions.data.filter(like => like.type === 'LIKE').length,
+                        love: post.result.reactions.data.filter(love => love.type === 'LOVE').length,
+                        wow: post.result.reactions.data.filter(wow => wow.type === 'WOW').length,
+                        sad: post.result.reactions.data.filter(sad => sad.type === 'SAD').length,
+                        angry: post.result.reactions.data.filter(angry => angry.type === 'ANGRY').length
+                    }
+                    else if (post.result && post.result.comments) {
+                        comments = post.result.comments.data.length;
+                    }
+
+                    if (error) check.error = error;
+                    else {
+                        check.reactions = reactions;
+                        check.comments = comments;
+                    }
+                    // post.checks.push(check);
+                    // console.log(check);
+                    return FacebookPost.findByIdAndUpdate(post._id, { $push: { checks: check } }, { new: true });
+                    // return post;
+                }));
+            })
+            .then(posts => {
+                resolve(posts);
+            })
+            .catch(err => {
+                console.log(err);
+                reject(err);
+            });
+    });
+}
+
+function viewFBpost(post) {
+    return new Promise(function (resolve, reject) {
+        graph.get(post.id + "/?fields=comments,reactions", function (err, result) {
             if (err) {
-                console.log(err)
-                reject(err)
+                resolve(Object.assign({}, post, { err }));
             } else {
-                console.log(result)
-                resolve(result)
+                resolve(Object.assign({}, post, { result }));
             }
         })
     })
@@ -950,6 +1021,14 @@ function sendNotificationToGivenUser(registrationToken, noti, type, key) {
     });
 }
 
+app.get('/getallPost', (req, res) => {
+    FacebookPost.find()
+        .then(posts => {
+            res.json(posts);
+        })
+        .catch(err => res.send(err))
+});
+
 app.get('/getfbPost', function (req, res) {
     let {p: page, q: query} = req.query
     FacebookPost.find()
@@ -1237,6 +1316,7 @@ function newToken(shortLiveToken) {
     });
 }
 
+
 function checkAndUpdateToken(expiredDate = 5) {
     return new Promise((resolve, reject) => {
         let debugTokens = {};
@@ -1269,7 +1349,6 @@ function checkAndUpdateToken(expiredDate = 5) {
             .catch(err => reject(err));
     });
 }
-
 app.get('/token', (req, res, next) => {
     const {expiredDate} = req.query;
     checkAndUpdateToken(expiredDate)
@@ -1321,3 +1400,231 @@ app.get('/fbNewToken', (req, res, next) => {
 // start the server
 http.createServer(app).listen(port);
 console.log('Server started!', port);
+
+var dumping = firebase.initializeApp({
+    credential: firebase.credential.cert({
+        "type": "service_account",
+        "project_id": "dumpling-app",
+        "private_key_id": "e7dcb3d212a7a3c9b9746dea33ea4c7434e48965",
+        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC4EFQFrsMuhDOd\n5q3kwi+fXez5KNRzsHRwwNr7R7ESNezqwGukHdC7cAOsSVMUfObZPLXQQYluk3Z3\nMunqx+3ZK2nWZaeZQ7KSZPaHstSNudwoV2iVAYDXBLGBrg2XMNvHRKGpu5xRI0sN\n5YZ3p40DUN4v8eR4Axi6stFjjXaw6qe22qYTAjQQoaV7bcGp+iVL7fz/VGqo7qji\nImobwnmeMtbDVCVH4kRIsuKFYY7pDM367xwYivSO80PrNPHEKPWzMW2CCdLioiJh\nbVjF4daIFQEUqShGtR2oi3pqAlUTipwomKF/2u28JM9PavVj4OnVQ9qlDboq8Pcu\n9jrLATxdAgMBAAECggEAEDLxrhlaGKUuZMJpQfV8Gva5dRksj2zzZnv2mcBOu2dP\nDT73ijdMiD58uEQwwWAXsf03lBc8eOSV+7oZn53OVztMon+KT0EHvX4Qu1MYBUwa\n7dr5e4mpFONXGu5eSFTWttQZtTYrdPGZ+KRfX/b5QFY047vSa2R8X+v+ZRhNXpb1\nwicZHbMxHi5uSHCslSDyAR+pzFHv6Mmz3hWpW5Im1szTomeKh68w7OXYt8wp69Y+\nfi4if5wNibo3RU3iRV8aqICBf2F8SAxI6p1CxkAJM2VX5mz3NTf1N31S2v0YGnNN\nqpbCowBnURtdTC9h9Lh3qXjDdG3jkznZcdzKTGZboQKBgQD1ZNfnEkmZse02+Ijv\nvGLyIfPgh0OLyskvNEBRZ5RS17f2sK8R2Vvk16bvRJ99796cDUXjCjZOwGz/PYB7\nEutEH1UTea77x2gZA111vKXwzY94IPbyqefCtk1tlG4NnB9KIKeH2w+9CUpAbJKS\nQnsV/oNHEaq3mnEmvmhix54pPQKBgQDABOYM8LTtWlHVJUb50QcfAp9b6Bf2QnZF\nU2dUtnc2dNOxKLUUWpNC/4VK++wwVMWnhJjCYfAndANET7xQ/5XoMDLbh7TbO47b\nfTwFdLhSL4o82n3XMrFwrMdLaftWH2AKocKkPAhqedsPzKJA+MoFJytp7Fc27u5e\ndh0qgUFRoQKBgQDweFfSimsxf9hzi+208CkOGhOArUyVyqyH424714LUA6y0w8Nr\nfFK+2E0wH1Ej+lFtHtyjdjhtx8eH/97NvGZsJUAbi5zcAjaSfGeznqAGb4nuMG+O\nsMz6U+dgQJnwIFPRMlq5mQO9PUNUCpE/XoJ7tSM0G63tqhzD2Mc2NWNaCQKBgA88\nVESSlMiAch3HZ2pK+5WqT5qrP7t6aof1pi1CjRL1Ehbsc/G5fhXC0ICynHr5PvWb\nv8MsojF/MwMokHiczvgtWtuwWNlMUHl55llIeZeLzhwl+fYpP4sBKo8BSb/7nVM6\noocFfGV2ZbtLMVSWaPEfuoIdDo59RsyX8ph8yQIBAoGBAIvH9RVe4d2SSC2z24VN\n+mEPBj1l+mtoStBMXTTnP4nT+Utx4QW3rMQg9ZmtxFcwojbJ5xP4QmrWqsQyvCPi\nEM9E8FbSto3AfW7vazqVIdkPuyeB1YwVeM11zAxi13R5ihG35jhIZb0yjHupADpj\nnuz0+gi+tn/4BQL69XWgMTKm\n-----END PRIVATE KEY-----\n",
+        "client_email": "firebase-adminsdk-tprf6@dumpling-app.iam.gserviceaccount.com",
+        "client_id": "105497327849129862101",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://accounts.google.com/o/oauth2/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-tprf6%40dumpling-app.iam.gserviceaccount.com"
+    }),
+    databaseURL: "https://dumpling-app.firebaseio.com"
+},'dumpling');
+var dumpling_question,dumpling_user,dumpling_questionArray,dumpling_friend,dumpling_answer
+
+dumping.database().ref('question').on('value',function (snap) {
+    dumpling_question = snap.val()
+    dumpling_questionArray = _.toArray(dumpling_question)
+})
+dumping.database().ref('answer').on('value',function (snap) {
+    dumpling_answer = snap.val()
+})
+
+
+dumping.database().ref('user').on('value',function (snap) {
+    dumpling_user = snap.val()
+})
+dumping.database().ref('friend').on('value',function (snap) {
+    dumpling_friend = snap.val()
+})
+
+app.get('/dumpling/getQuestion',function (req,res) {
+    let {userId} = req.query
+    var question = _.sample(dumpling_questionArray)
+    var friendList =[]
+    for(var i in dumpling_friend){
+        var connectFriend =dumpling_friend[i]
+        if(connectFriend.friend1 == userId){
+            var friendOfYou = dumpling_user[connectFriend.friend2]
+            friendList.push({
+                userId: friendOfYou.userId,
+                name: friendOfYou.name,
+            })
+        } else if(connectFriend.friend2 == userId){
+            var friendOfYou = dumpling_user[connectFriend.friend1]
+            friendList.push({
+                userId: friendOfYou.userId,
+                name: friendOfYou.name,
+            })
+        }
+    }
+
+    if(friendList.length > 3){
+        var options = _.sample(friendList,4)
+        res.send({question,options})
+    } else {
+        res.send({err:'You need to have more than 4 friends'})
+    }
+
+});
+
+app.get('/dumpling/profile',function (req,res) {
+    let {userId} = req.query
+    var profileData = dumpling_user[userId]
+    profileData.sent = _.where(dumpling_answer,{answerBy: userId})
+    profileData.receive = _.where(dumpling_answer,{answer: userId})
+    var friendList =[]
+    for(var i in dumpling_friend){
+        var connectFriend =dumpling_friend[i]
+        if(connectFriend.friend1 == userId){
+            var friendOfYou = dumpling_user[connectFriend.friend2]
+            friendList.push({
+                userId: friendOfYou.userId,
+                name: friendOfYou.name,
+            })
+        } else if(connectFriend.friend2 == userId){
+            var friendOfYou = dumpling_user[connectFriend.friend1]
+            friendList.push({
+                userId: friendOfYou.userId,
+                name: friendOfYou.name,
+            })
+        }
+    }
+    profileData.friends = friendList
+    res.send(profileData)
+});
+
+
+
+var verifier = require('email-verify');
+app.get('/emailVerifier', (req, res) => {
+    const { email, test } = req.query;
+    verifier.verify( email, function( err, info ){
+        if( err ) res.send(err);
+        else{
+            res.json(info);
+        }
+    });
+});
+
+let google = require('googleapis');
+let authentication = require("./google_auth");
+
+function getData(auth, spreadsheetId, range) {
+    var sheets = google.sheets('v4');
+    sheets.spreadsheets.values.get({
+        auth: auth,
+        spreadsheetId,
+        range, //Change Sheet1 if your worksheet's name is something else
+    }, (err, response) => {
+        if (err) {
+            console.log('The API returned an error: ' + err);
+            return;
+        }
+        var rows = response.values;
+        if (rows.length === 0) {
+            console.log('No data found.');
+        } else {
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                console.log(row.join(", "));
+            }
+        }
+    });
+}
+
+function clearData(auth, spreadsheetId, range) {
+    var sheets = google.sheets('v4');
+    sheets.spreadsheets.values.clear({
+        auth: auth,
+        spreadsheetId,
+        range
+    }, (err, response) => {
+        if (err) {
+            console.log('The API returned an error: ' + err);
+            return;
+        } else {
+            console.log("Clear");
+            return response;
+        }
+    });
+}
+
+function appendData(auth, spreadsheetId, range, values) {
+    var sheets = google.sheets('v4');
+    sheets.spreadsheets.values.append({
+        auth: auth,
+        spreadsheetId,
+        range, //Change Sheet1 if your worksheet's name is something else
+        valueInputOption: "USER_ENTERED",
+        resource: {
+            values
+        }
+    }, (err, response) => {
+        if (err) {
+            console.log('The API returned an error: ' + err);
+            return;
+        } else {
+            console.log("Appended");
+            return response;
+        }
+    });
+}
+
+function addSheet(auth, spreadsheetUrl, title, sheets) {
+    var _sheets = google.sheets('v4');
+    _sheets.spreadsheets.create({
+        auth: auth,
+        resource: {
+            sheets,
+            properties: {
+                title
+            },
+        }
+    }, (err, response) => {
+        if (err) {
+            console.log('The API returned an error: ' + err);
+            return;
+        } else {
+            console.log("Added", response);
+        }
+    });
+}
+
+app.get('/fbReports', (req, res, next) => {
+    authentication.authenticate().then((auth) => {
+        // getData(auth, '1lxmls_-E5X71hyjLyJYnyT4_3wZ_dl6sxW5lXB-Vzg0', 'facebook_post!A1:O');
+        // appendData(auth, '1lxmls_-E5X71hyjLyJYnyT4_3wZ_dl6sxW5lXB-Vzg0', 'facebook_post!A1:B');
+        // addSheet(auth, 'https://drive.google.com/drive/u/0/folders/0B-VC0Ytsd6ddbkw0aDY5UFd0b3c', 'Data Reports', [{ properties: { title: 'facebook_post' } }, { properties: { title: 'notification' } }]);
+        FacebookPost.find({ id: { $ne: null } })
+            .then(posts => {
+                return Promise.all(posts.map(post => {
+                    const url = 'https://www.facebook.com';
+                    let checksArr = [];
+
+                    if (_.isEmpty(post.checks)) checksArr = ["", "", "", "", "", "", "", ""];
+                    else {
+                        const comments = post.checks[0].comments ? post.checks[0].comments : "";
+                        const at = post.checks[0].at ? post.checks[0].at : "";
+                        const err = post.checks[0].error ? post.checks[0].error.message : null;
+                        const reactions = post.checks[0].reactions ? post.checks[0].reactions : {};
+
+                        if (err) checksArr = [err, "", "", "", "", "", "", new Date(at).toLocaleString()];
+                        else checksArr = [comments, reactions.angry, reactions.sad, reactions.wow, reactions.love, reactions.like, reactions.haha, new Date(at).toLocaleString()];
+                    }
+
+                    return [post.postId, `${url}/${post.id}`, post.poster, post.storeId, post.jobId, `${url}/groups/${post.to}`, new Date(post.sent).toLocaleString(), post.sent_error, post.content.text, post.content.link, post.content.image, ...checksArr, post._id, post.createdAt, post.updatedAt, new Date(post.time).toLocaleString()];
+                }));
+            })
+            .then(posts => {
+                const values = [];
+                const head_1 = ["postId", "url","poster", "storeId", "jobId", "group", "sent at", "sent_error", "content", "", "", "checks", "", "", "", "", "", "", "", "_id", "createdAt", "updatedAt", "time"];
+                const head_2 = ["", "", "", "", "", "", "", "", "text", "link", "image", "comments", "reactions", "at", "", "", "", ""];
+                const head_3 = ["", "", "", "", "", "", "", "", "", "", "", "", "angry", "sad", "wow", "love", "like", "haha", "", "", "", "", ""];
+                values.push(head_1, head_2, head_3);
+                values.push(...posts);
+                const spreadsheetId = '1UhQOhor7IbcgJO-O-2Qr8pYedif360V6D4od970673E';
+                const range = 'facebook_post!A1:B';
+                clearData(auth, spreadsheetId, range);
+                appendData(auth, spreadsheetId, range, values);
+                res.json('done'); //W
+            })
+            .catch(err => res.send(err));
+    });
+});
