@@ -1502,6 +1502,7 @@ app.get('/dumpling/profile', function (req, res) {
                     data.status = 'Đã thêm'
                 }
 
+                friendList.push(data)
 
             } else if (connectFriend.friend2 == userId) {
                 var friendOfYou = dumpling_user[connectFriend.friend1]
@@ -1514,8 +1515,9 @@ app.get('/dumpling/profile', function (req, res) {
                 } else {
                     data.status = 'Được thêm'
                 }
+                friendList.push(data)
+
             }
-            friendList.push(data)
 
         }
         profileData.friends = friendList
