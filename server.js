@@ -1475,12 +1475,23 @@ app.get('/dumpling/getQuestion', function (req, res) {
 });
 
 app.get('/dumpling/getAllUser', function (req, res) {
+    let {myId} = req.query
+
+    for (var i in dumpling_friend) {
+        var friend = dumpling_friend[i]
+        if (dumpling_friend[myId + ':' + friend.userId]) {
+            dumpling_friend[i].mystatus = 'Đã thêm'
+        } else if (dumpling_friend[friend.userId + ':' + myId]) {
+            dumpling_friend[i].mystatus = 'Được thêm'
+        }
+    }
     res.send(dumpling_user)
 });
 
 
 app.get('/dumpling/profile', function (req, res) {
     let {userId, myId} = req.query
+    console.log(req.query)
     var profileData = dumpling_user[userId]
     if (profileData) {
         profileData.sent = _.where(dumpling_answer, {answerBy: userId})
@@ -1495,13 +1506,14 @@ app.get('/dumpling/profile', function (req, res) {
                 data = {
                     userId: friendOfYou.userId,
                     name: friendOfYou.name,
-                }
-                if (myId && connectFriend.friend1 == myId) {
-                    data.mystatus = 'Đã thêm'
-                } else {
-                    data.status = 'Đã thêm'
-                }
+                    status: 'Đã thêm'
 
+                }
+                if (myId && dumpling_friend[myId+':'+data.userId]) {
+                    data.mystatus = 'Đã thêm'
+                } else if(myId && dumpling_friend[data.userId+':'+myId]){
+                    data.mystatus = 'Được thêm'
+                }
                 friendList.push(data)
 
             } else if (connectFriend.friend2 == userId) {
@@ -1509,11 +1521,12 @@ app.get('/dumpling/profile', function (req, res) {
                 data = {
                     userId: friendOfYou.userId,
                     name: friendOfYou.name,
+                    status: 'Được thêm'
                 }
-                if (myId && connectFriend.friend2 == myId) {
+                if (myId && dumpling_friend[myId+':'+data.userId]) {
+                    data.mystatus = 'Đã thêm'
+                } else if(myId && dumpling_friend[data.userId+':'+myId]){
                     data.mystatus = 'Được thêm'
-                } else {
-                    data.status = 'Được thêm'
                 }
                 friendList.push(data)
 
