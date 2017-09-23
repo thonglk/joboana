@@ -1480,12 +1480,13 @@ app.get('/dumpling/getAllUser', function (req, res) {
 
 
 app.get('/dumpling/profile', function (req, res) {
-    let {userId} = req.query
+    let {userId,myId} = req.query
     var profileData = dumpling_user[userId]
     if (profileData) {
         profileData.sent = _.where(dumpling_answer, {answerBy: userId})
         profileData.receive = _.where(dumpling_answer, {answer: userId})
-        var friendList = []
+        var friendList = {follow: [],followed:[]}
+
         for (var i in dumpling_friend) {
             var connectFriend = dumpling_friend[i]
             if (connectFriend.friend1 == userId) {
@@ -1493,12 +1494,14 @@ app.get('/dumpling/profile', function (req, res) {
                 friendList.push({
                     userId: friendOfYou.userId,
                     name: friendOfYou.name,
+                    status: 'Đã thêm'
                 })
             } else if (connectFriend.friend2 == userId) {
                 var friendOfYou = dumpling_user[connectFriend.friend1]
                 friendList.push({
                     userId: friendOfYou.userId,
                     name: friendOfYou.name,
+                    status: 'Được thêm'
                 })
             }
         }
