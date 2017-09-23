@@ -296,18 +296,18 @@ app.get('/l/:queryString', function (req, res, next) {
 });
 
 
-app.get('/searchFacebook', function (req,res) {
-    let {type,q} = req.query
+app.get('/searchFacebook', function (req, res) {
+    let {type, q} = req.query
 
     var searchOptions = {q, type};
 
-    graph.search(searchOptions, function(err, result) {
+    graph.search(searchOptions, function (err, result) {
         console.log(result); // {data: [{id: xxx, from: ...}, {id: xxx, from: ...}]}
         res.send(result)
     });
 })
 app.get('/viewFBpost', function (req, res) {
-    const { access_token } = req.query;
+    const {access_token} = req.query;
     if (access_token) graph.setAccessToken(access_token);
     fetchFBPost().then(function (result) {
         res.status(200).json(result);
@@ -318,7 +318,7 @@ app.get('/viewFBpost', function (req, res) {
 
 function fetchFBPost() {
     return new Promise((resolve, reject) => {
-        FacebookPost.find({ id: { $ne: null } })
+        FacebookPost.find({id: {$ne: null}})
             .then(posts => {
                 return Promise.all(posts.map(post => {
                     return viewFBpost(post._doc);
@@ -364,7 +364,7 @@ function fetchFBPost() {
                     }
                     // post.checks.push(check);
                     // console.log(check);
-                    return FacebookPost.findByIdAndUpdate(post._id, { $push: { checks: check } }, { new: true });
+                    return FacebookPost.findByIdAndUpdate(post._id, {$push: {checks: check}}, {new: true});
                     // return post;
                 }));
             })
@@ -382,9 +382,9 @@ function viewFBpost(post) {
     return new Promise(function (resolve, reject) {
         graph.get(post.id + "/?fields=comments,reactions", function (err, result) {
             if (err) {
-                resolve(Object.assign({}, post, { err }));
+                resolve(Object.assign({}, post, {err}));
             } else {
-                resolve(Object.assign({}, post, { result }));
+                resolve(Object.assign({}, post, {result}));
             }
         })
     })
@@ -1349,6 +1349,7 @@ function checkAndUpdateToken(expiredDate = 5) {
             .catch(err => reject(err));
     });
 }
+
 app.get('/token', (req, res, next) => {
     const {expiredDate} = req.query;
     checkAndUpdateToken(expiredDate)
@@ -1415,38 +1416,47 @@ var dumping = firebase.initializeApp({
         "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-tprf6%40dumpling-app.iam.gserviceaccount.com"
     }),
     databaseURL: "https://dumpling-app.firebaseio.com"
-},'dumpling');
-var dumpling_question,dumpling_user,dumpling_questionArray,dumpling_friend,dumpling_answer
+}, 'dumpling');
+var dumpling_question, dumpling_user, dumpling_questionArray, dumpling_friend, dumpling_answer
 
-dumping.database().ref('question').on('value',function (snap) {
+dumping.database().ref('question').on('value', function (snap) {
     dumpling_question = snap.val()
     dumpling_questionArray = _.toArray(dumpling_question)
 })
-dumping.database().ref('answer').on('value',function (snap) {
+dumping.database().ref('answer').on('value', function (snap) {
     dumpling_answer = snap.val()
+    if(!dumpling_answer){
+        dumpling_answer = {}
+    }
 })
 
 
-dumping.database().ref('user').on('value',function (snap) {
+dumping.database().ref('user').on('value', function (snap) {
     dumpling_user = snap.val()
+    if(!dumpling_user){
+        dumpling_user = {}
+    }
 })
-dumping.database().ref('friend').on('value',function (snap) {
+dumping.database().ref('friend').on('value', function (snap) {
     dumpling_friend = snap.val()
+    if(!dumpling_friend){
+        dumpling_friend = {}
+    }
 })
 
-app.get('/dumpling/getQuestion',function (req,res) {
+app.get('/dumpling/getQuestion', function (req, res) {
     let {userId} = req.query
     var question = _.sample(dumpling_questionArray)
-    var friendList =[]
-    for(var i in dumpling_friend){
-        var connectFriend =dumpling_friend[i]
-        if(connectFriend.friend1 == userId){
+    var friendList = []
+    for (var i in dumpling_friend) {
+        var connectFriend = dumpling_friend[i]
+        if (connectFriend.friend1 == userId) {
             var friendOfYou = dumpling_user[connectFriend.friend2]
             friendList.push({
                 userId: friendOfYou.userId,
                 name: friendOfYou.name,
             })
-        } else if(connectFriend.friend2 == userId){
+        } else if (connectFriend.friend2 == userId) {
             var friendOfYou = dumpling_user[connectFriend.friend1]
             friendList.push({
                 userId: friendOfYou.userId,
@@ -1455,36 +1465,36 @@ app.get('/dumpling/getQuestion',function (req,res) {
         }
     }
 
-    if(friendList.length > 3){
-        var options = _.sample(friendList,4)
-        res.send({question,options})
+    if (friendList.length > 3) {
+        var options = _.sample(friendList, 4)
+        res.send({question, options})
     } else {
-        res.send({err:'You need to have more than 4 friends'})
+        res.send({err: 'You need to have more than 4 friends'})
     }
 
 });
 
-app.get('/dumpling/getAllUser',function (req,res) {
+app.get('/dumpling/getAllUser', function (req, res) {
     res.send(dumpling_user)
 });
 
 
-app.get('/dumpling/profile',function (req,res) {
+app.get('/dumpling/profile', function (req, res) {
     let {userId} = req.query
     var profileData = dumpling_user[userId]
-    if(profileData){
-        profileData.sent = _.where(dumpling_answer,{answerBy: userId})
-        profileData.receive = _.where(dumpling_answer,{answer: userId})
-        var friendList =[]
-        for(var i in dumpling_friend){
-            var connectFriend =dumpling_friend[i]
-            if(connectFriend.friend1 == userId){
+    if (profileData) {
+        profileData.sent = _.where(dumpling_answer, {answerBy: userId})
+        profileData.receive = _.where(dumpling_answer, {answer: userId})
+        var friendList = []
+        for (var i in dumpling_friend) {
+            var connectFriend = dumpling_friend[i]
+            if (connectFriend.friend1 == userId) {
                 var friendOfYou = dumpling_user[connectFriend.friend2]
                 friendList.push({
                     userId: friendOfYou.userId,
                     name: friendOfYou.name,
                 })
-            } else if(connectFriend.friend2 == userId){
+            } else if (connectFriend.friend2 == userId) {
                 var friendOfYou = dumpling_user[connectFriend.friend1]
                 friendList.push({
                     userId: friendOfYou.userId,
@@ -1495,20 +1505,18 @@ app.get('/dumpling/profile',function (req,res) {
         profileData.friends = friendList
         res.send(profileData)
     } else {
-        res.send({err:'No profile'})
-
+        res.send({err: 'No profile'})
     }
 
 });
 
 
-
 var verifier = require('email-verify');
 app.get('/emailVerifier', (req, res) => {
-    const { email, test } = req.query;
-    verifier.verify( email, function( err, info ){
-        if( err ) res.send(err);
-        else{
+    const {email, test} = req.query;
+    verifier.verify(email, function (err, info) {
+        if (err) res.send(err);
+        else {
             res.json(info);
         }
     });
@@ -1603,7 +1611,7 @@ app.get('/fbReports', (req, res, next) => {
         // getData(auth, '1lxmls_-E5X71hyjLyJYnyT4_3wZ_dl6sxW5lXB-Vzg0', 'facebook_post!A1:O');
         // appendData(auth, '1lxmls_-E5X71hyjLyJYnyT4_3wZ_dl6sxW5lXB-Vzg0', 'facebook_post!A1:B');
         // addSheet(auth, 'https://drive.google.com/drive/u/0/folders/0B-VC0Ytsd6ddbkw0aDY5UFd0b3c', 'Data Reports', [{ properties: { title: 'facebook_post' } }, { properties: { title: 'notification' } }]);
-        FacebookPost.find({ id: { $ne: null } })
+        FacebookPost.find({id: {$ne: null}})
             .then(posts => {
                 return Promise.all(posts.map(post => {
                     const url = 'https://www.facebook.com';
@@ -1625,7 +1633,7 @@ app.get('/fbReports', (req, res, next) => {
             })
             .then(posts => {
                 const values = [];
-                const head_1 = ["postId", "url","poster", "storeId", "jobId", "group", "sent at", "sent_error", "content", "", "", "checks", "", "", "", "", "", "", "", "_id", "createdAt", "updatedAt", "time"];
+                const head_1 = ["postId", "url", "poster", "storeId", "jobId", "group", "sent at", "sent_error", "content", "", "", "checks", "", "", "", "", "", "", "", "_id", "createdAt", "updatedAt", "time"];
                 const head_2 = ["", "", "", "", "", "", "", "", "text", "link", "image", "comments", "reactions", "at", "", "", "", ""];
                 const head_3 = ["", "", "", "", "", "", "", "", "", "", "", "", "angry", "sad", "wow", "love", "like", "haha", "", "", "", "", ""];
                 values.push(head_1, head_2, head_3);
