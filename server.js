@@ -1425,7 +1425,7 @@ dumping.database().ref('question').on('value', function (snap) {
 })
 dumping.database().ref('answer').on('value', function (snap) {
     dumpling_answer = snap.val()
-    if(!dumpling_answer){
+    if (!dumpling_answer) {
         dumpling_answer = {}
     }
 })
@@ -1433,13 +1433,13 @@ dumping.database().ref('answer').on('value', function (snap) {
 
 dumping.database().ref('user').on('value', function (snap) {
     dumpling_user = snap.val()
-    if(!dumpling_user){
+    if (!dumpling_user) {
         dumpling_user = {}
     }
 })
 dumping.database().ref('friend').on('value', function (snap) {
     dumpling_friend = snap.val()
-    if(!dumpling_friend){
+    if (!dumpling_friend) {
         dumpling_friend = {}
     }
 })
@@ -1480,30 +1480,43 @@ app.get('/dumpling/getAllUser', function (req, res) {
 
 
 app.get('/dumpling/profile', function (req, res) {
-    let {userId,myId} = req.query
+    let {userId, myId} = req.query
     var profileData = dumpling_user[userId]
     if (profileData) {
         profileData.sent = _.where(dumpling_answer, {answerBy: userId})
         profileData.receive = _.where(dumpling_answer, {answer: userId})
-        var friendList = {follow: [],followed:[]}
+        var friendList = []
 
         for (var i in dumpling_friend) {
+            var data = {}
             var connectFriend = dumpling_friend[i]
             if (connectFriend.friend1 == userId) {
                 var friendOfYou = dumpling_user[connectFriend.friend2]
-                friendList.push({
+                data = {
                     userId: friendOfYou.userId,
                     name: friendOfYou.name,
-                    status: 'Đã thêm'
-                })
+                }
+                if (myId && connectFriend.friend1 == myid) {
+                    data.mystatus = 'Đã thêm'
+                } else {
+                    data.status = 'Đã thêm'
+                }
+
+
             } else if (connectFriend.friend2 == userId) {
                 var friendOfYou = dumpling_user[connectFriend.friend1]
-                friendList.push({
+                data = {
                     userId: friendOfYou.userId,
                     name: friendOfYou.name,
-                    status: 'Được thêm'
-                })
+                }
+                if (myId && connectFriend.friend2 == myid) {
+                    data.mystatus = 'Được thêm'
+                } else {
+                    data.status = 'Được thêm'
+                }
             }
+            friendList.push(data)
+
         }
         profileData.friends = friendList
         res.send(profileData)
