@@ -1496,7 +1496,7 @@ app.get('/dumpling/profile', function (req, res) {
                     userId: friendOfYou.userId,
                     name: friendOfYou.name,
                 }
-                if (myId && connectFriend.friend1 == myid) {
+                if (myId && connectFriend.friend1 == myId) {
                     data.mystatus = 'Đã thêm'
                 } else {
                     data.status = 'Đã thêm'
@@ -1509,7 +1509,7 @@ app.get('/dumpling/profile', function (req, res) {
                     userId: friendOfYou.userId,
                     name: friendOfYou.name,
                 }
-                if (myId && connectFriend.friend2 == myid) {
+                if (myId && connectFriend.friend2 == myId) {
                     data.mystatus = 'Được thêm'
                 } else {
                     data.status = 'Được thêm'
