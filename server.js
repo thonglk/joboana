@@ -1477,12 +1477,12 @@ app.get('/dumpling/getQuestion', function (req, res) {
 app.get('/dumpling/getAllUser', function (req, res) {
     let {myId} = req.query
 
-    for (var i in dumpling_friend) {
-        var friend = dumpling_friend[i]
-        if (dumpling_friend[myId + ':' + friend.userId]) {
-            dumpling_friend[i].mystatus = 'Đã thêm'
-        } else if (dumpling_friend[friend.userId + ':' + myId]) {
-            dumpling_friend[i].mystatus = 'Được thêm'
+    for (var i in dumpling_user) {
+        var user = dumpling_user[i]
+        if (dumpling_friend[myId + ':' + user.userId]) {
+            dumpling_user[i].mystatus = 'Đã thêm'
+        } else if (dumpling_friend[user.userId + ':' + myId]) {
+            dumpling_user[i].mystatus = 'Được thêm'
         }
     }
     res.send(dumpling_user)
