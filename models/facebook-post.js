@@ -54,6 +54,7 @@ var postSchema = new _mongoose.Schema({
         type: Date,
         default: Date.now()
     },
+    checks: [],
     to: String
 }, { collection: 'facebookPost' });
 
