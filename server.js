@@ -1022,11 +1022,15 @@ function sendNotificationToGivenUser(registrationToken, noti, type, key) {
 }
 
 app.get('/getallPost', (req, res) => {
-    FacebookPost.find()
-        .then(posts => {
-            res.json(posts);
-        })
-        .catch(err => res.send(err))
+  fetchFBPost().then(function (result) {
+      return FacebookPost.find();
+    })
+    .then(posts => {
+      res.status(200).json(posts);
+    })
+    .catch(function (err) {
+      res.status(500).send(err);
+    });
 });
 
 app.get('/getfbPost', function (req, res) {
