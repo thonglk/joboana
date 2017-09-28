@@ -1557,96 +1557,100 @@ app.get('/emailVerifier', (req, res) => {
     });
 });
 
+
 let google = require('googleapis');
 let authentication = require("./google_auth");
 
 function getData(auth, spreadsheetId, range) {
+  return new Promise((resolve, reject) => {
     var sheets = google.sheets('v4');
     sheets.spreadsheets.values.get({
-        auth: auth,
-        spreadsheetId,
-        range, //Change Sheet1 if your worksheet's name is something else
+      auth: auth,
+      spreadsheetId,
+      range, //Change Sheet1 if your worksheet's name is something else
     }, (err, response) => {
-        if (err) {
-            console.log('The API returned an error: ' + err);
-            return;
-        }
-        var rows = response.values;
-        if (rows.length === 0) {
-            console.log('No data found.');
-        } else {
-            for (var i = 0; i < rows.length; i++) {
-                var row = rows[i];
-                console.log(row.join(", "));
-            }
-        }
+      if (err) {
+        console.log('The API returned an error: ' + err);
+        reject(err);
+      }
+      var rows = response.values;
+      resolve(rows);
     });
+  });
 }
 
 function clearData(auth, spreadsheetId, range) {
+  return new Promise((resolve, reject) => {
     var sheets = google.sheets('v4');
     sheets.spreadsheets.values.clear({
-        auth: auth,
-        spreadsheetId,
-        range
+      auth: auth,
+      spreadsheetId,
+      range
     }, (err, response) => {
-        if (err) {
-            console.log('The API returned an error: ' + err);
-            return;
-        } else {
-            console.log("Clear");
-            return response;
-        }
+      if (err) {
+        console.log('The API returned an error: ' + err);
+        reject(err);
+      } else {
+        console.log("Clear");
+        resolve(response);
+      }
     });
+  });
 }
 
 function appendData(auth, spreadsheetId, range, values) {
+  return new Promise((resolve, reject) => {
     var sheets = google.sheets('v4');
     sheets.spreadsheets.values.append({
-        auth: auth,
-        spreadsheetId,
-        range, //Change Sheet1 if your worksheet's name is something else
-        valueInputOption: "USER_ENTERED",
-        resource: {
-            values
-        }
+      auth: auth,
+      spreadsheetId,
+      range, //Change Sheet1 if your worksheet's name is something else
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values
+      }
     }, (err, response) => {
-        if (err) {
-            console.log('The API returned an error: ' + err);
-            return;
-        } else {
-            console.log("Appended");
-            return response;
-        }
+      if (err) {
+        console.log('The API returned an error: ' + err);
+        resolve(err);
+      } else {
+        console.log("Appended");
+        resolve(response);
+      }
     });
+  });
 }
 
 function addSheet(auth, spreadsheetUrl, title, sheets) {
+  return new Promise((resolve, reject) => {
     var _sheets = google.sheets('v4');
     _sheets.spreadsheets.create({
-        auth: auth,
-        resource: {
-            sheets,
-            properties: {
-                title
-            },
-        }
+      auth: auth,
+      resource: {
+        sheets,
+        properties: {
+          title
+        },
+      }
     }, (err, response) => {
-        if (err) {
-            console.log('The API returned an error: ' + err);
-            return;
-        } else {
-            console.log("Added", response);
-        }
+      if (err) {
+        console.log('The API returned an error: ' + err);
+        reject(err);
+      } else {
+        console.log("Added", response);
+        resolve(response);
+      }
     });
+  });
 }
 
+authentication.authenticate().then((auth) => {
+  global.auth = auth;
+});
+
+
 app.get('/fbReports', (req, res, next) => {
-    authentication.authenticate().then((auth) => {
-        // getData(auth, '1lxmls_-E5X71hyjLyJYnyT4_3wZ_dl6sxW5lXB-Vzg0', 'facebook_post!A1:O');
-        // appendData(auth, '1lxmls_-E5X71hyjLyJYnyT4_3wZ_dl6sxW5lXB-Vzg0', 'facebook_post!A1:B');
-        // addSheet(auth, 'https://drive.google.com/drive/u/0/folders/0B-VC0Ytsd6ddbkw0aDY5UFd0b3c', 'Data Reports', [{ properties: { title: 'facebook_post' } }, { properties: { title: 'notification' } }]);
-        FacebookPost.find({id: {$ne: null}})
+    FacebookPost.find({id: {$ne: null}})
             .then(posts => {
                 return Promise.all(posts.map(post => {
                     const url = 'https://www.facebook.com';
@@ -1680,5 +1684,415 @@ app.get('/fbReports', (req, res, next) => {
                 res.json('done'); //W
             })
             .catch(err => res.send(err));
-    });
 });
+
+
+const profileRouter = express.Router({ mergeParams: true });
+
+profileRouter.route('/')
+  .get((req, res, next) => {
+    exportProfile()
+      .then(data => res.json(data))
+      .catch(err => res.send(`Err: ${JSON.stringify(err)}`));
+  })
+  .post((req, res, next) => {
+    const { userId, createdAt, name, school, address, avatar, birth, weight, working_type, time, industry, description, expect_distance, expect_salary, experience, figure, height, job, languages, videourl, photo, note, date } = req.body;
+    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = 'profileCOL!A3:B';
+    importProfile({ userId, createdAt, name, school, address, avatar, birth, weight, working_type, time, industry, description, expect_distance, expect_salary, experience, figure, height, job, languages, videourl, photo, note, date })
+      .then(values => appendData(auth, spreadsheetId, range, values))
+      .then(result => res.status(200).json(result))
+      .catch(err => res.status(500).send(err));
+  });
+
+function exportProfile() {
+  return new Promise((resolve, reject) => {
+    profileRef.orderByChild('createdAt').once('value')
+      .then(_profiles => {
+        return Promise.resolve(_.toArray(_profiles.val()));
+      })
+      .then(profiles => {
+        return Promise.resolve(profiles.map(profile => {
+          const userId = `https://jobo.asia/view/profile/${profile.userId}`;
+          let experience = '';
+          let time = '';
+          let languages = '';
+          let job = '';
+          let industry = '';
+          let photo = '';
+          let note = '';
+          let date = '';
+
+          if (profile.photo != '' && profile.photo) {
+            profile.photo.forEach(url => photo += `${url}\n`);
+          }
+          if (profile.industry != '' && profile.industry) {
+            Object.keys(profile.industry).forEach(key => industry += `${key}, `);
+          }
+          if (profile.job != '' && profile.job) {
+            Object.keys(profile.job).forEach(key => job += `${key}, `);
+          }
+          if (profile.experience != '' && profile.experience) {
+            _.toArray(profile.experience).forEach(_experience => {
+              experience += `
+            Company: ${_experience.company}
+            Job: ${_experience.job}
+            Start: ${new Date(_experience.start).toLocaleString()}
+            End: ${new Date(_experience.end).toLocaleString()}
+            `;
+            });
+          }
+          if (profile.time != '' && profile.time) {
+            Object.keys(profile.time).forEach(key => {
+              time += `${key}, `;
+            });
+          }
+          if (profile.languages != '' && profile.languages) {
+            Object.keys(profile.languages).forEach(key => {
+              languages += `${key}, `;
+            });
+          }
+          if (profile.adminNote) {
+            _.toArray(profile.adminNote).forEach(adminNote => {
+              note += `\nAdmin: ${adminNote.adminId}\nProfile: https://jobo.asia/view/profile/${adminNote.adminId}\nNote: ${adminNote.note}\n`;
+              date += `\n\n${new Date(adminNote.date).toLocaleString()}\n\n`;
+            });
+          }
+          return [userId, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date];
+        }));
+      })
+      .then(values => {
+        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+        const range = 'profileCOL!A3:B';
+        clearData(auth, spreadsheetId, range)
+          .then(res => {
+            appendData(auth, spreadsheetId, range, values.filter(value => value.length > 0))
+              .then(response => resolve({ response, values }));
+          });
+      })
+      .catch(err => {
+        console.log('Export profile Err:', err);
+        reject(err);
+      });
+  });
+}
+
+function importProfile(profile) {
+  return new Promise((resolve, reject) => {
+    const userId = `https://jobo.asia/view/profile/${profile.userId}`;
+    let experience = '';
+    let time = '';
+    let languages = '';
+    let job = '';
+    let industry = '';
+    let photo = '';
+    let note = '';
+    let date = '';
+
+    if (profile.photo != '' && profile.photo) {
+      profile.photo.forEach(url => photo += `${url}\n`);
+    }
+    if (profile.industry != '' && profile.industry) {
+      Object.keys(profile.industry).forEach(key => industry += `${key}, `);
+    }
+    if (profile.job != '' && profile.job) {
+      Object.keys(profile.job).forEach(key => job += `${key}, `);
+    }
+    if (profile.experience != '' && profile.experience) {
+      _.toArray(profile.experience).forEach(_experience => {
+        experience += `
+            Company: ${_experience.company}
+            Job: ${_experience.job}
+            Start: ${new Date(_experience.start).toLocaleString()}
+            End: ${new Date(_experience.end).toLocaleString()}
+            `;
+      });
+    }
+    if (profile.time != '' && profile.time) {
+      Object.keys(profile.time).forEach(key => {
+        time += `${key}, `;
+      });
+    }
+    if (profile.languages != '' && profile.languages) {
+      Object.keys(profile.languages).forEach(key => {
+        languages += `${key}, `;
+      });
+    }
+    if (profile.adminNote) {
+      _.toArray(profile.adminNote).forEach(adminNote => {
+        note += `\nAdmin: ${adminNote.adminId}\nProfile: https://jobo.asia/view/profile/${adminNote.adminId}\nNote: ${adminNote.note}\n`;
+        date += `\n\n${new Date(adminNote.date).toLocaleString()}\n\n`;
+      });
+    }
+
+    resolve([
+      [userId, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date]
+    ]);
+  });
+}
+
+profileRouter.route('/collection')
+  .get((req, res, next) => {
+    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = 'New_Profile!A2:E';
+    getData(auth, spreadsheetId, range)
+      .then(rows => {
+        return Promise.all(rows.map(row => {
+          const name = row[0];
+          const description = row[1];
+          const figure = row[2];
+          const job = row[3];
+          const note = row[4];
+          return importCollectionProfile({ name, description, figure, job, note });
+        }));
+      })
+      .then(results => res.status(200).json(results))
+      .catch(err => res.status(500).send(err));
+  });
+
+function importCollectionProfile({ name, description, figure, job, note }) {
+  return new Promise((resolve, reject) => {
+    const collectionProfileRef = db.ref('collectionProfile');
+    const jobField = {};
+    job.replace(/\s/g, '').split(',').filter(key => key != '').forEach(key => {
+      jobField[key] = true;
+    });
+    const adminNote = {};
+    const notId = `p${Date.now()}${_.random(0, 9)}`;
+    adminNote[notId] = {
+      adminId: 'hpthao',
+      date: Date.now(),
+      id: notId,
+      note
+    };
+
+    const key = collectionProfileRef.push().key;
+    collectionProfileRef.child(key).update({
+        userId: key,
+        createdAt: Date.now(),
+        name,
+        description,
+        figure,
+        job: jobField,
+        adminNote
+      })
+      .then(() => resolve(true))
+      .catch(err => resolve({ name, err }));
+  });
+}
+
+app.use('/profile', profileRouter);
+
+const storeRouter = express.Router({ mergeParams: true });
+
+storeRouter.route('/')
+  .get((req, res, next) => {
+    exportStore()
+      .then(res => res.json(res))
+      .catch(err => res.send(err));
+  })
+  .post((req, res, next) => {
+    const { storeId = '=Row()-3', type, incharge = 'thaohp', storeName = null, address = null, name, phone, email, job, industry, ref, adminNote } = req.body;
+    importStore({ storeId, type, incharge, storeName, address, name, phone, email, job, industry, ref, adminNote })
+      .then(values => res.status(200).json(values))
+      .catch(err => res.status(500).send(err));
+  });
+
+function exportStore() {
+  return new Promise((resolve, reject) => {
+    storeRef.orderByChild('createdBy').once('value')
+      .then(stores => {
+        return Promise.all(_.toArray(stores.val()).map(store => {
+          let values = [];
+          return userRef.child(store.createdBy).once('value').then(_user => {
+              const user = _user.val();
+              if (!user) return Promise.resolve([]);
+              const incharge = user.incharge || '';
+              const storeName = store.storeName || '';
+              const address = store.address || '';
+              const name = user.name || '';
+              const phone = user.phone || '';
+              const email = user.email || '';
+              let job = '';
+              if (store.job) Object.keys(store.job).forEach(key => job += `, ${key}`);
+              const industry = store.industry || '';
+              const ref = user.ref || '';
+              const adminNote = store.adminNote || '';
+              return Promise.resolve([`https://www.jobo.asia/view/store/${store.storeId}`, 'app', incharge, storeName, address, name, phone, email, job, industry, ref, adminNote]);
+            })
+            .catch(err => Promise.resolve([`ERR:`, JSON.stringify(err)]));
+        }));
+      })
+      .then(data => {
+        return newStore({}, data.filter(d => d.length > 0));
+      })
+      .then(res => resolve(res))
+      .catch(err => reject(err));
+  });
+}
+
+function newStore({ storeId = '=Row()-3', type, incharge = 'thaohp', storeName = null, address = null, name, phone, email, job, industry, ref, adminNote }, values) {
+  return new Promise((resolve, reject) => {
+    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = 'StoreCOL!A4:B';
+    const hyperLink = (link, caption) => `=HYPERLINK("${link}";"${caption}")`;
+    if (!values) values = [
+      [storeId, incharge, storeName, address, name, phone, email, job, industry, ref, adminNote]
+    ];
+    clearData(auth, spreadsheetId, range)
+      .then(() => appendData(auth, spreadsheetId, range, values))
+      .then(res => resolve(values))
+      .catch(err => resolve(err));
+  });
+}
+
+function importStore({ storeId = '=Row()-3', type, incharge = 'thaohp', storeName = null, address = null, name, phone, email, job, industry, ref, adminNote }) {
+  return new Promise((resolve, reject) => {
+    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = 'StoreCOL!A4:B';
+    let _job = '';
+    if (job) Object.keys(job).forEach(key => _job += `, ${key}`);
+    const values = [
+      [`https://www.jobo.asia/view/store/${storeId}`, 'app', incharge, storeName, address, name, phone, email, _job, industry, ref, adminNote]
+    ];
+    appendData(auth, spreadsheetId, range, values)
+      .then(res => resolve(values))
+      .catch(err => resolve(err));
+  });
+}
+
+app.use('/store', storeRouter);
+
+const leadRouter = express.Router({ mergeParams: true });
+
+leadRouter.route('/')
+  .get((req, res, next) => {
+    exportLead()
+      .then(data => res.status(200).json(data))
+      .catch(err => res.status(500).send(err));
+  });
+
+leadRouter.route('/collection')
+  .get((req, res, next) => {
+    importLead()
+      .then(leads => {
+        return Promise.all(leads.map(lead => {
+          if (!lead[5]) return Promise.resolve(null);
+          const phone = lead[5].replace(/\s+|-|\(|\)|\./g, '');
+          leadCol.findOne({
+            phone
+          }, (err, result) => {
+            if (err) return { status: 'err', err };
+            else {
+              if (!result) {
+                leadCol.insertOne({
+                  storeId: lead[0],
+                  userId: lead[1],
+                  storeName: lead[2],
+                  address: lead[3],
+                  name: lead[4],
+                  phone,
+                  email: lead[6],
+                  job: lead[7],
+                  industry: lead[8],
+                  ref: lead[9],
+                  adminNote: [{
+                    date: Date.now(),
+                    note: lead[10],
+                    id: `p${Date.now()}`,
+                    adminId: lead[1]
+                  }]
+                });
+              } else {
+                const adminNote = _.toArray(result.adminNote);
+                console.log(result.adminNote);
+                if (adminNote) {
+                  adminNote.push({
+                    date: Date.now(),
+                    note: lead[10],
+                    id: `p${Date.now()}`,
+                    adminId: lead[1]
+                  });
+                }
+                leadCol.updateOne({
+                  _id: result._id
+                }, {
+                  storeId: lead[0],
+                  userId: lead[1],
+                  storeName: lead[2],
+                  address: lead[3],
+                  name: lead[4],
+                  phone,
+                  email: lead[6],
+                  job: lead[7],
+                  industry: lead[8],
+                  ref: lead[9],
+                  adminNote
+                });
+              }
+            }
+          });
+        }));
+      })
+      .then(results => res.status(200).json(results))
+      .catch(err => {
+        console.log(err);
+        res.status(500).send(err);
+      });
+  });
+
+function getLead() {
+  return new Promise((resolve, reject) => {
+    leadCol.find({}).toArray((err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    });
+  });
+}
+
+function exportLead() {
+  return new Promise((resolve, reject) => {
+    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = 'LeadCOL!A2:L';
+
+    getLead()
+      .then(leads => {
+        return Promise.resolve(leads.map(lead => {
+          let adminNote = '';
+          if (lead.adminNote && lead.adminNote != '') {
+            _.toArray(lead.adminNote).forEach(note => {
+              if (!note) return;
+              adminNote += `\nAdmin: ${note.adminId}\nNote: ${note.note}\nDate: ${new Date(note.date).toLocaleString()}\n`;
+            });
+          }
+
+          return [lead.storeId, lead.userId, lead.storeName, lead.address, lead.name, lead.phone, lead.email, lead.job, lead.industry, lead.ref, adminNote];
+        }));
+      })
+      .then(values => appendData(auth, spreadsheetId, range, values))
+      .then(values => resolve(values))
+      .catch(err => {
+        console.log(err);
+        reject(err);
+      });
+  });
+}
+
+///\.|-|\(|\)|\s/g
+function importLead() {
+  return new Promise((resolve, reject) => {
+    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = 'New_LeadCOL!A2:L';
+
+    getData(auth, spreadsheetId, range)
+      .then(rows => {
+        resolve(rows.filter(row => row[5] != ''));
+      })
+      .catch(err => reject(err));
+  });
+}
+
+app.use('/lead', leadRouter);
