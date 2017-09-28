@@ -178,43 +178,43 @@ function init() {
   var a = 0,
     b = 0;
 
-  notificationRef.on('child_added', function (snap) {
-    var noti = snap.val()
-    if (noti && noti.time > startTime && noti.time < endTime) {
-      console.log('noti', a++);
-      schedule.scheduleJob(noti.time, function () {
-        console.log('start', noti.time);
+  // notificationRef.on('child_added', function (snap) {
+  //   var noti = snap.val()
+  //   if (noti && noti.time > startTime && noti.time < endTime) {
+  //     console.log('noti', a++);
+  //     schedule.scheduleJob(noti.time, function () {
+  //       console.log('start', noti.time);
 
-        startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-          console.log('array', array)
-        })
-      })
-    }
-  });
+  //       startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+  //         console.log('array', array)
+  //       })
+  //     })
+  //   }
+  // });
 
-  notificationCol.find({ 'time': { $gt: startTime, $lt: endTime } }, function (err, notis) {
-    notis.forEach(function (noti) {
-      console.log('noti', a++);
-      schedule.scheduleJob(noti.time, function () {
-        console.log('start', noti.time);
-        startSend(noti.userData, noti.mail, noti.channel, noti.notiId)
-      })
-    })
-  })
+  // notificationCol.find({ 'time': { $gt: startTime, $lt: endTime } }, function (err, notis) {
+  //   notis.forEach(function (noti) {
+  //     console.log('noti', a++);
+  //     schedule.scheduleJob(noti.time, function () {
+  //       console.log('start', noti.time);
+  //       startSend(noti.userData, noti.mail, noti.channel, noti.notiId)
+  //     })
+  //   })
+  // })
 
 
-  FacebookPost.find({ 'time': { $gt: startTime, $lt: endTime } })
-    .then(posts => {
-      posts.forEach(function (post) {
-        console.log('facebook', b++);
-        let promise = Promise.resolve(Object.assign({}, post, { schedule: true }));
-        schedule.scheduleJob(post.time, function () {
-          promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
-        });
-        return promise;
-      })
+  // FacebookPost.find({ 'time': { $gt: startTime, $lt: endTime } })
+  //   .then(posts => {
+  //     posts.forEach(function (post) {
+  //       console.log('facebook', b++);
+  //       let promise = Promise.resolve(Object.assign({}, post, { schedule: true }));
+  //       schedule.scheduleJob(post.time, function () {
+  //         promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
+  //       });
+  //       return promise;
+  //     })
 
-    })
+  //   })
 }
 
 var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
@@ -2066,9 +2066,6 @@ function getLead() {
 
 function exportLead() {
   return new Promise((resolve, reject) => {
-    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-    const range = 'LeadCOL!A2:L';
-
     getLead()
       .then(leads => {
         return Promise.resolve(leads.map(lead => {
@@ -2083,12 +2080,26 @@ function exportLead() {
           return [lead.storeId, lead.userId, lead.storeName, lead.address, lead.name, lead.phone, lead.email, lead.job, lead.industry, lead.ref, adminNote];
         }));
       })
-      .then(values => appendData(auth, spreadsheetId, range, values))
+      .then(values => {
+        return newLead(values);
+      })
       .then(values => resolve(values))
       .catch(err => {
         console.log(err);
         reject(err);
       });
+  });
+}
+
+function newLead(values) {
+  return new Promise((resolve, reject) => {
+    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = 'LeadCOL!A2:L';
+
+    clearData(auth, spreadsheetId, range)
+    .then(() => appendData(auth, spreadsheetId, range, values))
+    .then(values => resolve(values))
+    .catch(err => reject(err));
   });
 }
 
@@ -2107,3 +2118,34 @@ function importLead() {
 }
 
 app.use('/lead', leadRouter);
+
+
+app.get('/removeAdminNote/:type', (req, res, next) => {
+  const noteId = req.query.noteId;
+  const leadId = req.query.leadId;
+  const type = req.params.type;
+// "storeId": leadId
+  if (type == 'lead') {
+    leadCol.updateOne({ "storeId": leadId }, {
+      $pull: {
+        "adminNote": {
+          "id": Number(noteId)
+        }
+      }
+    }, { multi: true }).then(function (data) {
+      res.send({ code: 'success', data })
+    }).catch(function (err) {
+      res.send({ code: 'error', err })
+    });
+  }
+});
+
+app.get('/removeLead/:leadId', (req, res) => {
+  const leadId = req.params.leadId;
+  leadCol.remove({ storeId: leadId })
+    .then(function (data) {
+      res.send({ code: 'success', data })
+    }).catch(function (err) {
+      res.send({ code: 'error', err })
+    });
+});
