@@ -203,18 +203,18 @@ function init() {
   // })
 
 
-  // FacebookPost.find({ 'time': { $gt: startTime, $lt: endTime } })
-  //   .then(posts => {
-  //     posts.forEach(function (post) {
-  //       console.log('facebook', b++);
-  //       let promise = Promise.resolve(Object.assign({}, post, { schedule: true }));
-  //       schedule.scheduleJob(post.time, function () {
-  //         promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
-  //       });
-  //       return promise;
-  //     })
+  FacebookPost.find({ 'time': { $gt: startTime, $lt: endTime } })
+    .then(posts => {
+      posts.forEach(function (post) {
+        console.log('facebook', b++);
+        let promise = Promise.resolve(Object.assign({}, post, { schedule: true }));
+        schedule.scheduleJob(post.time, function () {
+          promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
+        });
+        return promise;
+      })
 
-  //   })
+    })
 }
 
 var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
@@ -1106,7 +1106,7 @@ function PublishFacebook(to, content, poster, postId) {
     console.log('scheduleJob_PublishFacebook_run', to, poster, postId)
     var accessToken = facebookAccount[poster].access_token
     if (to && content && accessToken) {
-      if (content.image) {
+      if (content.image == 99) {
         graph.post(to + "/photos?access_token=" + accessToken, {
             "url": content.image,
             "caption": content.text
