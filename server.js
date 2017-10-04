@@ -1091,13 +1091,13 @@ app.get('/getallPost', (req, res) => {
 });
 
 app.get('/getfbPost', function (req, res) {
-    let {p: page, poster, groupId, jobId,id, still_alive} = req.query
+    let {p: page, poster, to, jobId,id, still_alive} = req.query
     var query = {}
     if (poster) {
         query.poster = poster
     }
-    if (groupId) {
-        query.groupId = groupId
+    if (to) {
+        query.to = to
     }
     if (jobId) {
         query.jobId = jobId
