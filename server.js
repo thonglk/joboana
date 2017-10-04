@@ -149,10 +149,11 @@ var a = 0,
   b = 0;
 
 var configP = {
-  l: 'letter',
-  M: 'messenger',
-  w: 'web',
-  m: 'mobile'
+    l: 'letter',
+    M: 'messenger',
+    w: 'web',
+    m: 'mobile',
+    f: 'facebook'
 }
 var configT = {
   o: 'open',
@@ -965,7 +966,7 @@ function sendMessenger(messengerId, noti, key) {
       messages: {
         text: noti.body || '',
         calltoaction: noti.calltoaction || '',
-        linktoaction: noti.linktoaction || '',
+        linktoaction: addTrackingEmail(key, noti.linktoaction, 'c', 'M') || '',
         image: noti.image || ''
       },
       recipientIds: messengerId
@@ -995,7 +996,7 @@ function sendNotificationToGivenUser(registrationToken, noti, type, key) {
         body: noti.body || ''
       },
       data: {
-        linktoaction: noti.linktoaction || ''
+        linktoaction: addTrackingEmail(key, noti.linktoaction, 'c', 'm') || ''
       }
     };
 
@@ -1088,9 +1089,12 @@ app.post('/newNoti', (req, res, next) => {
             console.log('array', array)
           })
         })
+          console.log('scheduled notification',noti.notiId)
         res.send({ code: 'success', msg: 'scheduled', id: noti.notiId })
       } else {
-        res.send({ code: 'success', msg: 'saved', id: noti.notiId })
+          console.log('save notification',noti.notiId)
+
+          res.send({ code: 'success', msg: 'saved', id: noti.notiId })
 
       }
 
@@ -1099,6 +1103,13 @@ app.post('/newNoti', (req, res, next) => {
 
 
 });
+function addShortLinkFBPost(postId, text) {
+    const link = text.match(/https:\/\/.*\$primary/g)[0].replace(/\$primary/g, '');
+    if (link) {
+        text = text.replace(/https:\/\/.*\$primary/g, addTrackingEmail(postId, link, 'c', 'f'));
+    }
+    return text;
+}
 
 function PublishFacebook(to, content, poster, postId) {
   return new Promise((resolve, reject) => {
@@ -1109,13 +1120,22 @@ function PublishFacebook(to, content, poster, postId) {
       if (content.image == 99) {
         graph.post(to + "/photos?access_token=" + accessToken, {
             "url": content.image,
-            "caption": content.text
+            "caption": addShortLinkFBPost(postId, content.text)
           },
           function (err, res) {
             // returns the post id
             if (err) {
               console.log(err.message, to, poster);
               // facebookPostRef.child(postId).update({ sent_error: err.message })
+                if (facebookAccount[poster].messengerId) {
+                    data = {
+                        recipientIds: facebookAccount[poster].messengerId,
+                        messages: {
+                            text: `☻ Facebook account error at account ${poster}: ${err.message}\nGroup: https://fb.com/groups/${to}`
+                        }
+                    };
+                    axios.post('https://jobobot.herokuapp.com/noti', data);
+                }
               FacebookPost.findOneAndUpdate({ postId }, {
                   sent_error: err.message
                 }, { new: true })
@@ -1140,6 +1160,16 @@ function PublishFacebook(to, content, poster, postId) {
             if (err) {
               console.log(err.message, to, poster);
               // facebookPostRef.child(postId).update({ sent_error: err.message })
+                if (facebookAccount[poster].messengerId) {
+                    data = {
+                        recipientIds: facebookAccount[poster].messengerId,
+                        messages: {
+                            text: `☻ Facebook account error at account ${poster}: ${err.message}\nGroup: https://fb.com/groups/${to}`
+                        }
+                    };
+                    axios.post('https://jobobot.herokuapp.com/noti', data);
+                }
+
               FacebookPost.findOneAndUpdate({ postId }, {
                   sent_error: err.message
                 }, { new: true })
@@ -1562,329 +1592,332 @@ app.get('/emailVerifier', (req, res) => {
   });
 });
 
-
 let google = require('googleapis');
 let authentication = require("./google_auth");
 
 function getData(auth, spreadsheetId, range) {
-  return new Promise((resolve, reject) => {
-    var sheets = google.sheets('v4');
-    sheets.spreadsheets.values.get({
-      auth: auth,
-      spreadsheetId,
-      range, //Change Sheet1 if your worksheet's name is something else
-    }, (err, response) => {
-      if (err) {
-        console.log('The API returned an error: ' + err);
-        reject(err);
-      }
-      var rows = response.values;
-      resolve(rows);
+    return new Promise((resolve, reject) => {
+        var sheets = google.sheets('v4');
+        sheets.spreadsheets.values.get({
+            auth: auth,
+            spreadsheetId,
+            range, //Change Sheet1 if your worksheet's name is something else
+        }, (err, response) => {
+            if (err) {
+                console.log('The API returned an error: ' + err);
+                reject(err);
+            }
+            var rows = response.values;
+            resolve(rows);
+        });
     });
-  });
 }
 
 function clearData(auth, spreadsheetId, range) {
-  return new Promise((resolve, reject) => {
-    var sheets = google.sheets('v4');
-    sheets.spreadsheets.values.clear({
-      auth: auth,
-      spreadsheetId,
-      range
-    }, (err, response) => {
-      if (err) {
-        console.log('The API returned an error: ' + err);
-        reject(err);
-      } else {
-        console.log("Clear");
-        resolve(response);
-      }
+    return new Promise((resolve, reject) => {
+        var sheets = google.sheets('v4');
+        sheets.spreadsheets.values.clear({
+            auth: auth,
+            spreadsheetId,
+            range
+        }, (err, response) => {
+            if (err) {
+                console.log('The API returned an error: ' + err);
+                reject(err);
+            } else {
+                console.log("Clear");
+                resolve(response);
+            }
+        });
     });
-  });
 }
 
 function appendData(auth, spreadsheetId, range, values) {
-  return new Promise((resolve, reject) => {
-    var sheets = google.sheets('v4');
-    sheets.spreadsheets.values.append({
-      auth: auth,
-      spreadsheetId,
-      range, //Change Sheet1 if your worksheet's name is something else
-      valueInputOption: "USER_ENTERED",
-      resource: {
-        values
-      }
-    }, (err, response) => {
-      if (err) {
-        console.log('The API returned an error: ' + err);
-        resolve(err);
-      } else {
-        console.log("Appended");
-        resolve({ response, values });
-      }
+    return new Promise((resolve, reject) => {
+        var sheets = google.sheets('v4');
+        sheets.spreadsheets.values.append({
+            auth: auth,
+            spreadsheetId,
+            range, //Change Sheet1 if your worksheet's name is something else
+            valueInputOption: "USER_ENTERED",
+            resource: {
+                values
+            }
+        }, (err, response) => {
+            if (err) {
+                console.log('The API returned an error: ' + err);
+                resolve(err);
+            } else {
+                console.log("Appended");
+                resolve({ response, values });
+            }
+        });
     });
-  });
 }
 
 function addSheet(auth, spreadsheetUrl, title, sheets) {
-  return new Promise((resolve, reject) => {
-    var _sheets = google.sheets('v4');
-    _sheets.spreadsheets.create({
-      auth: auth,
-      resource: {
-        sheets,
-        properties: {
-          title
-        },
-      }
-    }, (err, response) => {
-      if (err) {
-        console.log('The API returned an error: ' + err);
-        reject(err);
-      } else {
-        console.log("Added", response);
-        resolve(response);
-      }
+    return new Promise((resolve, reject) => {
+        var _sheets = google.sheets('v4');
+        _sheets.spreadsheets.create({
+            auth: auth,
+            resource: {
+                sheets,
+                properties: {
+                    title
+                },
+            }
+        }, (err, response) => {
+            if (err) {
+                console.log('The API returned an error: ' + err);
+                reject(err);
+            } else {
+                console.log("Added", response);
+                resolve(response);
+            }
+        });
     });
-  });
 }
 
 authentication.authenticate().then((auth) => {
-  global.auth = auth;
+    global.auth = auth;
 });
 
 
 app.get('/fbReports', (req, res, next) => {
-  FacebookPost.find({ id: { $ne: null } })
-    .then(posts => {
-      return Promise.all(posts.map(post => {
-        const url = 'https://www.facebook.com';
-        let checksArr = [];
+    FacebookPost.find({ id: { $ne: null } })
+        .then(posts => {
+            return Promise.all(posts.map(post => {
+                const url = 'https://www.facebook.com';
+                let checksArr = [];
 
-        if (_.isEmpty(post.checks)) checksArr = ["", "", "", "", "", "", "", ""];
-        else {
-          const comments = post.checks[0].comments ? post.checks[0].comments : "";
-          const at = post.checks[0].at ? post.checks[0].at : "";
-          const err = post.checks[0].error ? post.checks[0].error.message : null;
-          const reactions = post.checks[0].reactions ? post.checks[0].reactions : {};
+                if (_.isEmpty(post.checks)) checksArr = ["", "", "", "", "", "", "", ""];
+                else {
+                    const comments = post.checks[0].comments ? post.checks[0].comments : "";
+                    const at = post.checks[0].at ? post.checks[0].at : "";
+                    const err = post.checks[0].error ? post.checks[0].error.message : null;
+                    const reactions = post.checks[0].reactions ? post.checks[0].reactions : {};
 
-          if (err) checksArr = [err, "", "", "", "", "", "", new Date(at).toLocaleString()];
-          else checksArr = [comments, reactions.angry, reactions.sad, reactions.wow, reactions.love, reactions.like, reactions.haha, new Date(at).toLocaleString()];
-        }
+                    if (err) checksArr = [err, "", "", "", "", "", "", new Date(at).toLocaleString()];
+                    else checksArr = [comments, reactions.angry, reactions.sad, reactions.wow, reactions.love, reactions.like, reactions.haha, new Date(at).toLocaleString()];
+                }
 
-        return [post.postId, `${url}/${post.id}`, post.poster, post.storeId, post.jobId, `${url}/groups/${post.to}`, new Date(post.sent).toLocaleString(), post.sent_error, post.content.text, post.content.link, post.content.image, ...checksArr, post._id, post.createdAt, post.updatedAt, new Date(post.time).toLocaleString()];
-      }));
-    })
-    .then(posts => {
-      const values = [];
-      const head_1 = ["postId", "url", "poster", "storeId", "jobId", "group", "sent at", "sent_error", "content", "", "", "checks", "", "", "", "", "", "", "", "_id", "createdAt", "updatedAt", "time"];
-      const head_2 = ["", "", "", "", "", "", "", "", "text", "link", "image", "comments", "reactions", "at", "", "", "", ""];
-      const head_3 = ["", "", "", "", "", "", "", "", "", "", "", "", "angry", "sad", "wow", "love", "like", "haha", "", "", "", "", ""];
-      values.push(head_1, head_2, head_3);
-      values.push(...posts);
-      const spreadsheetId = '1UhQOhor7IbcgJO-O-2Qr8pYedif360V6D4od970673E';
-      const range = 'facebook_post!A1:B';
-      clearData(auth, spreadsheetId, range);
-      appendData(auth, spreadsheetId, range, values);
-      res.json('done'); //W
-    })
-    .catch(err => res.send(err));
+                return [post.postId, `${url}/${post.id}`, post.poster, post.storeId, post.jobId, `${url}/groups/${post.to}`, new Date(post.sent).toLocaleString(), post.sent_error, post.content.text, post.content.link, post.content.image, ...checksArr, post._id, post.createdAt, post.updatedAt, new Date(post.time).toLocaleString()];
+            }));
+        })
+        .then(posts => {
+            const values = [];
+            const head_1 = ["postId", "url", "poster", "storeId", "jobId", "group", "sent at", "sent_error", "content", "", "", "checks", "", "", "", "", "", "", "", "_id", "createdAt", "updatedAt", "time"];
+            const head_2 = ["", "", "", "", "", "", "", "", "text", "link", "image", "comments", "reactions", "at", "", "", "", ""];
+            const head_3 = ["", "", "", "", "", "", "", "", "", "", "", "", "angry", "sad", "wow", "love", "like", "haha", "", "", "", "", ""];
+            values.push(head_1, head_2, head_3);
+            values.push(...posts);
+            const spreadsheetId = '1UhQOhor7IbcgJO-O-2Qr8pYedif360V6D4od970673E';
+            const range = 'facebook_post!A1:B';
+            clearData(auth, spreadsheetId, range);
+            appendData(auth, spreadsheetId, range, values);
+            res.json('done'); //W
+        })
+        .catch(err => res.send(err));
 });
 
 
 const profileRouter = express.Router({ mergeParams: true });
 
 profileRouter.route('/export')
-  .get((req, res, next) => {
-    exportProfile()
-      .then(data => res.json(data))
-      .catch(err => res.send(`Err: ${JSON.stringify(err)}`));
-  });
+    .get((req, res, next) => {
+        exportProfile()
+            .then(data => res.json(data))
+            .catch(err => res.send(`Err: ${JSON.stringify(err)}`));
+    });
 profileRouter.route('/import')
-  .post((req, res, next) => {
-    const { userId, createdAt, name, school, address, avatar, birth, weight, working_type, time, industry, description, expect_distance, expect_salary, experience, figure, height, job, languages, videourl, photo, note, date } = req.body;
-    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-    const range = 'profileCOL!A3:B';
-    importProfile({ userId, createdAt, name, school, address, avatar, birth, weight, working_type, time, industry, description, expect_distance, expect_salary, experience, figure, height, job, languages, videourl, photo, note, date })
-      .then(values => appendData(auth, spreadsheetId, range, values))
-      .then(result => res.status(200).json(result))
-      .catch(err => res.status(500).send(err));
-  });
+    .post((req, res, next) => {
+        const { userId, createdAt, name, school, address, avatar, birth, weight, working_type, time, industry, description, expect_distance, expect_salary, experience, figure, height, job, languages, videourl, photo, note, date } = req.body;
+        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+        const range = 'profileCOL!A3:B';
+        importProfile({ userId, createdAt, name, school, address, avatar, birth, weight, working_type, time, industry, description, expect_distance, expect_salary, experience, figure, height, job, languages, videourl, photo, note, date })
+            .then(values => appendData(auth, spreadsheetId, range, values))
+            .then(result => res.status(200).json(result))
+            .catch(err => res.status(500).send(err));
+    });
 
 function exportProfile() {
-  return new Promise((resolve, reject) => {
-    profileRef.orderByChild('createdAt').once('value')
-      .then(_profiles => {
-        return Promise.resolve(_.toArray(_profiles.val()));
-      })
-      .then(profiles => {
-        return Promise.resolve(profiles.map(profile => {
-          const userId = `https://jobo.asia/view/profile/${profile.userId}`;
-          let experience = '';
-          let time = '';
-          let languages = '';
-          let job = '';
-          let industry = '';
-          let photo = '';
-          let note = '';
-          let date = '';
+    return new Promise((resolve, reject) => {
+        profileRef.orderByChild('createdAt').once('value')
+            .then(_profiles => {
+                return Promise.resolve(_.toArray(_profiles.val()));
+            })
+            .then(profiles => {
+                return Promise.resolve(profiles.map(profile => {
+                    const userId = `https://jobo.asia/view/profile/${profile.userId}`;
+                    let experience = '';
+                    let time = '';
+                    let languages = '';
+                    let job = '';
+                    let industry = '';
+                    let photo = '';
+                    let note = '';
+                    let date = '';
 
-          if (profile.photo != '' && profile.photo) {
-            profile.photo.forEach(url => photo += `${url}\n`);
-          }
-          if (profile.industry != '' && profile.industry) {
-            Object.keys(profile.industry).forEach(key => industry += `${key}, `);
-          }
-          if (profile.job != '' && profile.job) {
-            Object.keys(profile.job).forEach(key => job += `${key}, `);
-          }
-          if (profile.experience != '' && profile.experience) {
-            _.toArray(profile.experience).forEach(_experience => {
-              experience += `
+                    if (profile.photo != '' && profile.photo) {
+                        profile.photo.forEach(url => photo += `${url}\n`);
+                    }
+                    if (profile.industry != '' && profile.industry) {
+                        Object.keys(profile.industry).forEach(key => industry += `${key}, `);
+                    }
+                    if (profile.job != '' && profile.job) {
+                        Object.keys(profile.job).forEach(key => job += `${key}, `);
+                    }
+                    if (profile.experience != '' && profile.experience) {
+                        _.toArray(profile.experience).forEach(_experience => {
+                            experience += `
             Company: ${_experience.company}
             Job: ${_experience.job}
             Start: ${new Date(_experience.start).toLocaleString()}
             End: ${new Date(_experience.end).toLocaleString()}
             `;
+                        });
+                    }
+                    if (profile.time != '' && profile.time) {
+                        Object.keys(profile.time).forEach(key => {
+                            time += `${key}, `;
+                        });
+                    }
+                    if (profile.languages != '' && profile.languages) {
+                        Object.keys(profile.languages).forEach(key => {
+                            languages += `${key}, `;
+                        });
+                    }
+                    if (profile.adminNote) {
+                        _.toArray(profile.adminNote).forEach(adminNote => {
+                            note += `\nAdmin: ${adminNote.adminId}\nProfile: https://jobo.asia/view/profile/${adminNote.adminId}\nNote: ${adminNote.note}\n`;
+                            date += `\n\n${new Date(adminNote.date).toLocaleString()}\n\n`;
+                        });
+                    }
+                    return [userId, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date];
+                }));
+            })
+            .then(values => {
+                const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+                const range = 'profileCOL!A3:B';
+                clearData(auth, spreadsheetId, range)
+                    .then(res => {
+                        appendData(auth, spreadsheetId, range, values.filter(value => value.length > 0))
+                            .then(response => resolve({ response, values }));
+                    });
+            })
+            .catch(err => {
+                console.log('Export profile Err:', err);
+                reject(err);
             });
-          }
-          if (profile.time != '' && profile.time) {
-            Object.keys(profile.time).forEach(key => {
-              time += `${key}, `;
-            });
-          }
-          if (profile.languages != '' && profile.languages) {
-            Object.keys(profile.languages).forEach(key => {
-              languages += `${key}, `;
-            });
-          }
-          if (profile.adminNote) {
-            _.toArray(profile.adminNote).forEach(adminNote => {
-              note += `\nAdmin: ${adminNote.adminId}\nProfile: https://jobo.asia/view/profile/${adminNote.adminId}\nNote: ${adminNote.note}\n`;
-              date += `\n\n${new Date(adminNote.date).toLocaleString()}\n\n`;
-            });
-          }
-          return [userId, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date];
-        }));
-      })
-      .then(values => {
-        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-        const range = 'profileCOL!A3:B';
-        clearData(auth, spreadsheetId, range)
-          .then(res => {
-            appendData(auth, spreadsheetId, range, values.filter(value => value.length > 0))
-              .then(response => resolve({ response, values }));
-          });
-      })
-      .catch(err => {
-        console.log('Export profile Err:', err);
-        reject(err);
-      });
-  });
+    });
 }
 
 function importProfile(profile) {
-  return new Promise((resolve, reject) => {
-    const userId = `https://jobo.asia/view/profile/${profile.userId}`;
-    let experience = '';
-    let time = '';
-    let languages = '';
-    let job = '';
-    let industry = '';
-    let photo = '';
-    let note = '';
-    let date = '';
+    return new Promise((resolve, reject) => {
+        const userId = `https://jobo.asia/view/profile/${profile.userId}`;
+        let experience = '';
+        let time = '';
+        let languages = '';
+        let job = '';
+        let industry = '';
+        let photo = '';
+        let note = '';
+        let date = '';
 
-    if (profile.photo != '' && profile.photo) {
-      profile.photo.forEach(url => photo += `${url}\n`);
-    }
-    if (profile.industry != '' && profile.industry) {
-      Object.keys(profile.industry).forEach(key => industry += `${key}, `);
-    }
-    if (profile.job != '' && profile.job) {
-      Object.keys(profile.job).forEach(key => job += `${key}, `);
-    }
-    if (profile.experience != '' && profile.experience) {
-      _.toArray(profile.experience).forEach(_experience => {
-        experience += `
+        if (profile.photo != '' && profile.photo) {
+            profile.photo.forEach(url => photo += `${url}\n`);
+        }
+        if (profile.industry != '' && profile.industry) {
+            Object.keys(profile.industry).forEach(key => industry += `${key}, `);
+        }
+        if (profile.job != '' && profile.job) {
+            Object.keys(profile.job).forEach(key => job += `${key}, `);
+        }
+        if (profile.experience != '' && profile.experience) {
+            _.toArray(profile.experience).forEach(_experience => {
+                experience += `
             Company: ${_experience.company}
             Job: ${_experience.job}
             Start: ${new Date(_experience.start).toLocaleString()}
             End: ${new Date(_experience.end).toLocaleString()}
             `;
-      });
-    }
-    if (profile.time != '' && profile.time) {
-      Object.keys(profile.time).forEach(key => {
-        time += `${key}, `;
-      });
-    }
-    if (profile.languages != '' && profile.languages) {
-      Object.keys(profile.languages).forEach(key => {
-        languages += `${key}, `;
-      });
-    }
-    if (profile.adminNote) {
-      _.toArray(profile.adminNote).forEach(adminNote => {
-        note += `\nAdmin: ${adminNote.adminId}\nProfile: https://jobo.asia/view/profile/${adminNote.adminId}\nNote: ${adminNote.note}\n`;
-        date += `\n\n${new Date(adminNote.date).toLocaleString()}\n\n`;
-      });
-    }
+            });
+        }
+        if (profile.time != '' && profile.time) {
+            Object.keys(profile.time).forEach(key => {
+                time += `${key}, `;
+            });
+        }
+        if (profile.languages != '' && profile.languages) {
+            Object.keys(profile.languages).forEach(key => {
+                languages += `${key}, `;
+            });
+        }
+        if (profile.adminNote) {
+            _.toArray(profile.adminNote).forEach(adminNote => {
+                note += `\nAdmin: ${adminNote.adminId}\nProfile: https://jobo.asia/view/profile/${adminNote.adminId}\nNote: ${adminNote.note}\n`;
+                date += `\n\n${new Date(adminNote.date).toLocaleString()}\n\n`;
+            });
+        }
 
-    resolve([
-      [userId, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date]
-    ]);
-  });
+        resolve([
+            [userId, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date]
+        ]);
+    });
 }
 
 profileRouter.route('/collection')
-  .get((req, res, next) => {
-    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-    const range = 'New_Profile!A2:E';
-    getData(auth, spreadsheetId, range)
-      .then(rows => {
-        return Promise.all(rows.map(row => {
-          const name = row[0];
-          const description = row[1];
-          const figure = row[2];
-          const job = row[3];
-          const note = row[4];
-          return importCollectionProfile({ name, description, figure, job, note });
-        }));
-      })
-      .then(results => res.status(200).json(results))
-      .catch(err => res.status(500).send(err));
-  });
-
-function importCollectionProfile({ name, description, figure, job, note }) {
-  return new Promise((resolve, reject) => {
-    const collectionProfileRef = db.ref('collectionProfile');
-    const jobField = {};
-    job.replace(/\s/g, '').split(',').filter(key => key != '').forEach(key => {
-      jobField[key] = true;
+    .get((req, res, next) => {
+        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+        const range = 'New_Profile!A2:E';
+        getData(auth, spreadsheetId, range)
+            .then(rows => {
+                return Promise.all(rows.map(row => {
+                    const name = row[0];
+                    const description = row[1];
+                    const phone = row[2];
+                    const figure = row[3];
+                    const job = row[4];
+                    const note = row[5];
+                    const ref = row[6];
+                    return importCollectionProfile({ name, description, phone, figure, job, note, ref });
+                }));
+            })
+            .then(results => res.status(200).json(results))
+            .catch(err => res.status(500).send(err));
     });
-    const adminNote = {};
-    const notId = `p${Date.now()}${_.random(0, 9)}`;
-    adminNote[notId] = {
-      adminId: 'hpthao',
-      date: Date.now(),
-      id: notId,
-      note
-    };
 
-    const key = collectionProfileRef.push().key;
-    collectionProfileRef.child(key).update({
-        userId: key,
-        createdAt: Date.now(),
-        name,
-        description,
-        figure,
-        job: jobField,
-        adminNote
-      })
-      .then(() => resolve(true))
-      .catch(err => resolve({ name, err }));
-  });
+function importCollectionProfile({ name, description, phone, figure, job, note, ref }) {
+    return new Promise((resolve, reject) => {
+        const collectionProfileRef = db.ref('collectionProfile');
+        const jobField = {};
+        job.replace(/\s/g, '').split(',').filter(key => key != '').forEach(key => {
+            jobField[key] = true;
+        });
+        const adminNote = {};
+        const notId = `p${Date.now()}${_.random(0, 9)}`;
+        adminNote[notId] = {
+            adminId: ref || 'hpthao',
+            date: Date.now(),
+            id: notId,
+            note
+        };
+
+        const key = collectionProfileRef.push().key;
+        collectionProfileRef.child(key).update({
+            userId: key,
+            createdAt: Date.now(),
+            name,
+            description,
+            phone,
+            figure,
+            job: jobField,
+            adminNote,
+            ref
+        })
+            .then(() => resolve(true))
+            .catch(err => resolve({ name, err }));
+    });
 }
 
 app.use('/profile', profileRouter);
@@ -1892,84 +1925,84 @@ app.use('/profile', profileRouter);
 const storeRouter = express.Router({ mergeParams: true });
 
 storeRouter.route('/export')
-  .get((req, res, next) => {
-    exportStore()
-      .then(resp => res.json(resp))
-      .catch(err => res.send(err));
-  });
+    .get((req, res, next) => {
+        exportStore()
+            .then(resp => res.json(resp))
+            .catch(err => res.send(err));
+    });
 storeRouter.route('/import')
-  .post((req, res, next) => {
-    const { storeId = '=Row()-3', type, incharge = 'thaohp', storeName = null, address = null, name, phone, email, job, industry, ref, adminNote } = req.body;
-    importStore({ storeId, type, incharge, storeName, address, name, phone, email, job, industry, ref, adminNote })
-      .then(values => res.status(200).json(values))
-      .catch(err => res.status(500).send(err));
-  });
+    .post((req, res, next) => {
+        const { storeId = '=Row()-3', type, incharge = 'thaohp', storeName = null, address = null, name, phone, email, job, industry, ref, adminNote } = req.body;
+        importStore({ storeId, type, incharge, storeName, address, name, phone, email, job, industry, ref, adminNote })
+            .then(values => res.status(200).json(values))
+            .catch(err => res.status(500).send(err));
+    });
 
 function exportStore() {
-  return new Promise((resolve, reject) => {
-    storeRef.orderByChild('createdBy').once('value')
-      .then(stores => {
-        console.log(stores.val());
-        return Promise.all(_.toArray(stores.val()).map(store => {
-          let values = [];
-          return userRef.child(store.createdBy).once('value').then(_user => {
-              const user = _user.val();
-              if (!user) return Promise.resolve([]);
-              const incharge = user.incharge || '';
-              const storeName = store.storeName || '';
-              const address = store.address || '';
-              const name = user.name || '';
-              const phone = user.phone || '';
-              const email = user.email || '';
-              let job = '';
-              if (store.job) Object.keys(store.job).forEach(key => job += `, ${key}`);
-              const industry = store.industry || '';
-              const ref = user.ref || '';
-              const adminNote = store.adminNote || '';
-              return Promise.resolve([`https://www.jobo.asia/view/store/${store.storeId}`, 'app', incharge, storeName, address, name, phone, email, job, industry, ref, adminNote]);
+    return new Promise((resolve, reject) => {
+        storeRef.orderByChild('createdBy').once('value')
+            .then(stores => {
+                console.log(stores.val());
+                return Promise.all(_.toArray(stores.val()).map(store => {
+                    let values = [];
+                    return userRef.child(store.createdBy).once('value').then(_user => {
+                        const user = _user.val();
+                        if (!user) return Promise.resolve([]);
+                        const incharge = user.incharge || '';
+                        const storeName = store.storeName || '';
+                        const address = store.address || '';
+                        const name = user.name || '';
+                        const phone = user.phone || '';
+                        const email = user.email || '';
+                        let job = '';
+                        if (store.job) Object.keys(store.job).forEach(key => job += `, ${key}`);
+                        const industry = store.industry || '';
+                        const ref = user.ref || '';
+                        const adminNote = store.adminNote || '';
+                        return Promise.resolve([`https://www.jobo.asia/view/store/${store.storeId}`, 'app', incharge, storeName, address, name, phone, email, job, industry, ref, adminNote]);
+                    })
+                        .catch(err => Promise.resolve([`ERR:`, JSON.stringify(err)]));
+                }));
             })
-            .catch(err => Promise.resolve([`ERR:`, JSON.stringify(err)]));
-        }));
-      })
-      .then(data => {
-        return newStore({}, data.filter(d => d.length > 0));
-      })
-      .then(res => {
-        console.log(res);
-        resolve(res);
-      })
-      .catch(err => reject(err));
-  });
+            .then(data => {
+                return newStore({}, data.filter(d => d.length > 0));
+            })
+            .then(res => {
+                console.log(res);
+                resolve(res);
+            })
+            .catch(err => reject(err));
+    });
 }
 
 function newStore({ storeId = '=Row()-3', type, incharge = 'thaohp', storeName = null, address = null, name, phone, email, job, industry, ref, adminNote }, values) {
-  return new Promise((resolve, reject) => {
-    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-    const range = 'StoreCOL!A4:B';
-    const hyperLink = (link, caption) => `=HYPERLINK("${link}";"${caption}")`;
-    if (!values) values = [
-      [storeId, incharge, storeName, address, name, phone, email, job, industry, ref, adminNote]
-    ];
-    clearData(auth, spreadsheetId, range)
-      .then(() => appendData(auth, spreadsheetId, range, values))
-      .then(res => resolve(values))
-      .catch(err => resolve(err));
-  });
+    return new Promise((resolve, reject) => {
+        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+        const range = 'StoreCOL!A4:B';
+        const hyperLink = (link, caption) => `=HYPERLINK("${link}";"${caption}")`;
+        if (!values) values = [
+            [storeId, incharge, storeName, address, name, phone, email, job, industry, ref, adminNote]
+        ];
+        clearData(auth, spreadsheetId, range)
+            .then(() => appendData(auth, spreadsheetId, range, values))
+            .then(res => resolve(values))
+            .catch(err => resolve(err));
+    });
 }
 
 function importStore({ storeId = '=Row()-3', type, incharge = 'thaohp', storeName = null, address = null, name, phone, email, job, industry, ref, adminNote }) {
-  return new Promise((resolve, reject) => {
-    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-    const range = 'StoreCOL!A4:B';
-    let _job = '';
-    if (job) Object.keys(job).forEach(key => _job += `, ${key}`);
-    const values = [
-      [`https://www.jobo.asia/view/store/${storeId}`, 'app', incharge, storeName, address, name, phone, email, _job, industry, ref, adminNote]
-    ];
-    appendData(auth, spreadsheetId, range, values)
-      .then(res => resolve(values))
-      .catch(err => resolve(err));
-  });
+    return new Promise((resolve, reject) => {
+        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+        const range = 'StoreCOL!A4:B';
+        let _job = '';
+        if (job) Object.keys(job).forEach(key => _job += `, ${key}`);
+        const values = [
+            [`https://www.jobo.asia/view/store/${storeId}`, 'app', incharge, storeName, address, name, phone, email, _job, industry, ref, adminNote]
+        ];
+        appendData(auth, spreadsheetId, range, values)
+            .then(res => resolve(values))
+            .catch(err => resolve(err));
+    });
 }
 
 app.use('/store', storeRouter);
@@ -1977,175 +2010,317 @@ app.use('/store', storeRouter);
 const leadRouter = express.Router({ mergeParams: true });
 
 leadRouter.route('/export')
-  .get((req, res, next) => {
-    exportLead()
-      .then(data => res.status(200).json(data))
-      .catch(err => res.status(500).send(err));
-  });
-
+    .get((req, res, next) => {
+        exportLead()
+            .then(data => res.status(200).json(data))
+            .catch(err => res.status(500).send(err));
+    });
+String.prototype.simplify= function() {
+    return this.toLowerCase()
+        .replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a")
+        .replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e")
+        .replace(/ì|í|ị|ỉ|ĩ/g, "i")
+        .replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o")
+        .replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u")
+        .replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y")
+        .replace(/đ/g, "d")
+        .replace(/^\-+|\-+$/g, "")
+        .replace(/\s/g, '-');
+};
 leadRouter.route('/collection')
-  .get((req, res, next) => {
-    importLead()
-      .then(leads => {
-        return Promise.all(leads.map(lead => {
-          if (!lead[5]) return Promise.resolve(null);
-          const phone = lead[5].replace(/\s+|-|\(|\)|\./g, '');
-          leadCol.findOne({
-            phone
-          }, (err, result) => {
-            if (err) return { status: 'err', err };
-            else {
-              if (!result) {
-                leadCol.insertOne({
-                  storeId: lead[0],
-                  userId: lead[1],
-                  storeName: lead[2],
-                  address: lead[3],
-                  name: lead[4],
-                  phone,
-                  email: lead[6],
-                  job: lead[7],
-                  industry: lead[8],
-                  ref: lead[9],
-                  adminNote: [{
-                    date: Date.now(),
-                    note: lead[10],
-                    id: `p${Date.now()}`,
-                    adminId: lead[1]
-                  }]
-                });
-              } else {
-                const adminNote = _.toArray(result.adminNote);
-                console.log(result.adminNote);
-                if (adminNote) {
-                  adminNote.push({
-                    date: Date.now(),
-                    note: lead[10],
-                    id: `p${Date.now()}`,
-                    adminId: lead[1]
-                  });
-                }
-                leadCol.updateOne({
-                  _id: result._id
-                }, {
-                  storeId: lead[0],
-                  userId: lead[1],
-                  storeName: lead[2],
-                  address: lead[3],
-                  name: lead[4],
-                  phone,
-                  email: lead[6],
-                  job: lead[7],
-                  industry: lead[8],
-                  ref: lead[9],
-                  adminNote
-                });
-              }
-            }
-          });
-        }));
-      })
-      .then(results => res.status(200).json(results))
-      .catch(err => {
-        console.log(err);
-        res.status(500).send(err);
-      });
-  });
+    .get((req, res, next) => {
+        importLead()
+            .then(leads => {
+                return Promise.all(leads.map(lead => {
+                    if (!lead[5]) return Promise.resolve(null);
+                    const phone = lead[5].replace(/\s+|-|\(|\)|\./g, '');
+                    leadCol.findOne({
+                        phone
+                    }, (err, result) => {
+                        if (err) return { status: 'err', err };
+                        else {
+                            if (!result) {
+                                leadCol.insertOne({
+                                    storeId: lead[2].simplify(),
+                                    userId: lead[1],
+                                    storeName: lead[2],
+                                    address: lead[3],
+                                    name: lead[4],
+                                    phone,
+                                    email: lead[6],
+                                    job: lead[7],
+                                    industry: lead[8],
+                                    ref: lead[9],
+                                    adminNote: [{
+                                        date: Date.now(),
+                                        note: lead[10],
+                                        id: `p${Date.now()}`,
+                                        adminId: lead[1]
+                                    }]
+                                });
+                            } else {
+                                const adminNote = _.toArray(result.adminNote);
+
+                                if (adminNote && lead[10] && !adminNote.filter(note => note.note == lead[10])[0]) {
+                                    adminNote.push({
+                                        date: Date.now(),
+                                        note: lead[10],
+                                        id: `p${Date.now()}`,
+                                        adminId: lead[1]
+                                    });
+                                }
+                                leadCol.updateOne({
+                                    _id: result._id
+                                }, {
+                                    storeId: lead[2].simplify(),
+                                    userId: lead[1],
+                                    storeName: lead[2],
+                                    address: lead[3],
+                                    name: lead[4],
+                                    phone,
+                                    email: lead[6],
+                                    job: lead[7],
+                                    industry: lead[8],
+                                    ref: lead[9],
+                                    adminNote
+                                });
+                            }
+                        }
+                    });
+                }));
+            })
+            .then(results => res.status(200).json(results))
+            .catch(err => {
+                console.log(err);
+                res.status(500).send(err);
+            });
+    });
 
 function getLead() {
-  return new Promise((resolve, reject) => {
-    leadCol.find({}).toArray((err, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(data);
-      }
+    return new Promise((resolve, reject) => {
+        leadCol.find({}).toArray((err, data) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(data);
+            }
+        });
     });
-  });
 }
 
 function exportLead() {
-  return new Promise((resolve, reject) => {
-    getLead()
-      .then(leads => {
-        return Promise.resolve(leads.map(lead => {
-          let adminNote = '';
-          if (lead.adminNote && lead.adminNote != '') {
-            _.toArray(lead.adminNote).forEach(note => {
-              if (!note) return;
-              adminNote += `\nAdmin: ${note.adminId}\nNote: ${note.note}\nDate: ${new Date(note.date).toLocaleString()}\n`;
-            });
-          }
+    return new Promise((resolve, reject) => {
+        getLead()
+            .then(leads => {
+                return Promise.resolve(leads.map(lead => {
+                    let adminNote = '';
+                    if (lead.adminNote && lead.adminNote != '') {
+                        _.toArray(lead.adminNote).forEach(note => {
+                            if (!note) return;
+                            adminNote += `\nAdmin: ${note.adminId}\nNote: ${note.note}\nDate: ${new Date(note.date).toLocaleString()}\n`;
+                        });
+                    }
 
-          return [lead.storeId, lead.userId, lead.storeName, lead.address, lead.name, lead.phone, lead.email, lead.job, lead.industry, lead.ref, adminNote];
-        }));
-      })
-      .then(values => {
-        return newLead(values);
-      })
-      .then(values => resolve(values))
-      .catch(err => {
-        console.log(err);
-        reject(err);
-      });
-  });
+                    return [lead.storeId, lead.userId, lead.storeName, lead.address, lead.name, lead.phone, lead.email, lead.job, lead.industry, lead.ref, adminNote];
+                }));
+            })
+            .then(values => {
+                return newLead(values);
+            })
+            .then(values => resolve(values))
+            .catch(err => {
+                console.log(err);
+                reject(err);
+            });
+    });
 }
 
 function newLead(values) {
-  return new Promise((resolve, reject) => {
-    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-    const range = 'LeadCOL!A2:L';
+    return new Promise((resolve, reject) => {
+        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+        const range = 'LeadCOL!A2:L';
 
-    clearData(auth, spreadsheetId, range)
-    .then(() => appendData(auth, spreadsheetId, range, values))
-    .then(values => resolve(values))
-    .catch(err => reject(err));
-  });
+        clearData(auth, spreadsheetId, range)
+            .then(() => appendData(auth, spreadsheetId, range, values))
+            .then(values => resolve(values))
+            .catch(err => reject(err));
+    });
 }
 
 ///\.|-|\(|\)|\s/g
 function importLead() {
-  return new Promise((resolve, reject) => {
-    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-    const range = 'New_LeadCOL!A2:L';
+    return new Promise((resolve, reject) => {
+        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+        const range = 'New_LeadCOL!A2:L';
 
-    getData(auth, spreadsheetId, range)
-      .then(rows => {
-        resolve(rows.filter(row => row[5] != ''));
-      })
-      .catch(err => reject(err));
-  });
+        getData(auth, spreadsheetId, range)
+            .then(rows => {
+                resolve(rows.filter(row => row[5]));
+            })
+            .catch(err => reject(err));
+    });
 }
 
 app.use('/lead', leadRouter);
 
+app.get('/getLeadd', (req, res) => {
+    importLead()
+        .then(leads => res.status(200).json(leads))
+        .catch(err => res.status(500).send(err));
+});
 
 app.get('/removeAdminNote/:type', (req, res, next) => {
-  const noteId = req.query.noteId;
-  const leadId = req.query.leadId;
-  const type = req.params.type;
-// "storeId": leadId
-  if (type == 'lead') {
-    leadCol.updateOne({ "storeId": leadId }, {
-      $pull: {
-        "adminNote": {
-          "id": Number(noteId)
-        }
-      }
-    }, { multi: true }).then(function (data) {
-      res.send({ code: 'success', data })
-    }).catch(function (err) {
-      res.send({ code: 'error', err })
-    });
-  }
+    const noteId = req.query.noteId;
+    const leadId = req.query.leadId;
+    const type = req.params.type;
+    // "storeId": leadId
+    if (type == 'lead') {
+        leadCol.updateOne({ "storeId": leadId }, {
+            $pull: {
+                "adminNote": {
+                    "id": Number(noteId)
+                }
+            }
+        }, { multi: true }).then(function (data) {
+            res.send({ code: 'success', data })
+        }).catch(function (err) {
+            res.send({ code: 'error', err })
+        });
+    }
 });
 
 app.get('/removeLead/:leadId', (req, res) => {
-  const leadId = req.params.leadId;
-  leadCol.remove({ storeId: leadId })
-    .then(function (data) {
-      res.send({ code: 'success', data })
-    }).catch(function (err) {
-      res.send({ code: 'error', err })
+    const leadId = req.params.leadId;
+    leadCol.remove({ storeId: leadId })
+        .then(function (data) {
+            res.send({ code: 'success', data })
+        }).catch(function (err) {
+        res.send({ code: 'error', err })
     });
+});
+
+app.get('/fbgroup/:groupId/members', (req, res, next) => {
+    const groupId = req.params.groupId;
+    const limit = req.query.limit || 5000;
+    const after = req.query.after;
+    const before = req.query.before;
+    let query = `?limit=${limit}`;
+    if (after && before) return res.status(463).json({ error_subcode: 463, message: 'Before and after can\'t be use together' });
+
+    if (after) query += `&after=${after}`;
+    if (before) query += `&before=${before}`;
+
+    graph.get(groupId + "/members" + query, function (err, result) {
+        if (err) {
+            res.status(500).json(err);
+        } else {
+            const paging = {};
+            if (result.paging && result.paging.cursors) paging.cursors = result.paging.cursors;
+            if (result.paging && result.paging.next) paging.next = result.paging.next.replace('https://graph.facebook.com/v2.8/', 'https://joboana.herokuapp.com/fbgroup/');
+            if (result.paging && result.paging.previous) paging.previous = result.paging.previous.replace('https://graph.facebook.com/v2.8/', 'https://joboana.herokuapp.com/fbgroup/');
+
+            res.status(200).json(Object.assign({}, result, { paging }));
+        }
+    })
+});
+
+app.get('/deadline/job', (req, res, next) => {
+    const { after = 0, before = 24 } = req.query;
+    const now = Date.now();
+    db.ref('job').orderByChild('deadline').once('value')
+        .then(_jobs_ => {
+            const jobs = _.filter(_jobs_.val(), job => {
+                const time = (job.deadline - now) / 1000 / 60 / 60;
+                if (time <= before && time >= after) return true;
+                else return false;
+            });
+
+            if (jobs.length === 0) return res.status(200).send('OK');
+
+            //1100401513397714;1460902087301324;1226124860830528
+            let text = '';
+
+
+            text = `Có ${jobs.length} công việc đã/sẽ hết hạn trước ${new Date(Date.now() + (1000*60*60*before)).toLocaleString()}`;
+
+            const recipientIds = req.query.recipientIds ? JSON.parse(req.query.recipientIds) : ["1226124860830528", "1100401513397714"];
+            let data = {
+                recipientIds,
+                messages: {
+                    text
+                }
+            };
+
+            axios.post('https://jobobot.herokuapp.com/noti', data)
+                .then(re => {
+                    return Promise.all([
+                        ...jobs.map(job => {
+                            text = '\n♥';
+                            text += ` ${job.jobName} ➡ https://www.jobo.asia/view/store/${job.storeId}?jobId=${job.jobId}`;
+                            data = {
+                                recipientIds,
+                                messages: {
+                                    text
+                                }
+                            };
+                            return axios.post('https://jobobot.herokuapp.com/noti', data);
+                        })
+                    ]);
+                })
+                .then(response => res.status(200).send(response.data))
+                .catch(err => console.log(err));
+        })
+        .catch(err => res.status(500).send(err));
+});
+
+
+app.get('/wrongEmail', (req, res, next) => {
+    userRef.once('value')
+        .then(_users => {
+            const users = _.toArray(_users.val());
+            return Promise.all(users.map(user => {
+                if (!user || _.isEmpty(user) || !user.userId) return Promise.resolve({ user: null });
+                else if (!user.email) return userRef.child(user.userId).update({
+                    wrongEmail: true
+                });
+                else {
+                    return verifier.verify(user.email, function (err, info) {
+                        if (err) return userRef.child(user.userId).update({
+                            wrongEmail: true
+                        });
+                        else {
+                            if (info.success) return Promise.resolve({ user, status: true });
+                            else return userRef.child(user.userId).update({wrongEmail: true});
+                        }
+                    });
+                }
+            }));
+        })
+        .then(users => res.json(users))
+        .catch(err => console.log(err));
+});
+
+
+process.on('exit', function (code) {
+    //Notification code when application process is killed
+
+    const data = {
+        recipientIds: ['1100401513397714', '1460902087301324', '1226124860830528'],
+        messages: {
+            text: `Ana sập sml rồi: ${code}`
+        }
+    };
+    axios.post('https://jobobot.herokuapp.com/noti', data);
+});
+
+process.on('uncaughtException', function (err) {
+    console.log('Caught exception: ' + err);
+    //1100401513397714;1460902087301324;1226124860830528
+    const data = {
+        recipientIds: ['1100401513397714', '1460902087301324', '1226124860830528'],
+        messages: {
+            text: `Ana sập sml rồi, lỗi uncaughtException: ${err}`
+        }
+    };
+    axios.post('https://jobobot.herokuapp.com/noti', data);
 });
