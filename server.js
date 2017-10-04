@@ -406,12 +406,12 @@ function keygen() {
   return key
 }
 
-function addTrackingEmail(notiId, url, t = 'o', p = 'l') {
+function addTrackingEmail(notiId, url, t = 'o', p = 'l', i = '') {
   if (url) {
     var trackUrl = ''
     var platform = configP[p]
     var type = configT[t]
-    joboPxl.database().ref('/links/' + notiId + p + t)
+    joboPxl.database().ref('/links/' + notiId + p + t + i)
       .update({
         url,
         linkId: notiId,
@@ -420,9 +420,9 @@ function addTrackingEmail(notiId, url, t = 'o', p = 'l') {
       })
     console.log()
     if (t == 'o') {
-      trackUrl = CONFIG.AnaURL + '/l/' + notiId + p + t
+      trackUrl = CONFIG.AnaURL + '/l/' + notiId + p + t + i
     } else {
-      trackUrl = CONFIG.WEBURL + '/l/' + notiId + p + t
+      trackUrl = CONFIG.WEBURL + '/l/' + notiId + p + t + i
     }
     console.log('url', trackUrl)
     return trackUrl
@@ -458,6 +458,55 @@ function tracking(notiId, platform, url, type = 'open') {
         reject(err);
       });
   });
+}
+
+function shortenURL(longURL, key) {
+    var shorturl = '';
+
+    var options = {
+        url: 'https://api-ssl.bitly.com/v3/shorten?access_token=3324d23b69543241ca05d5bbd96da2b17bf523cb&longUrl=' + longURL + '&format=json',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }
+
+
+// Start the request
+    request(options, function (error, response, body) {
+        if (body) {
+            var res = JSON.parse(body)
+            if (res.data && res.data.url) {
+                shorturl = res.data.url
+                shortLinkData[key] = shorturl
+
+            }
+        }
+    })
+    return shorturl;
+}
+
+String.prototype.getLink = function () {
+    var text = this.replace(/"/gi, "'");
+    var link = (/(<a\s+(?:[^>]*?\s+)?href=')([^']*)(')|(<a\s+(?:[^>]*?\s+)?href=")([^"]*)(")/ig).exec(text) ? (/(<a\s+(?:[^>]*?\s+)?href=')([^']*)(')|(<a\s+(?:[^>]*?\s+)?href=")([^"]*)(")/ig).exec(text)[2] : null;
+    return link;
+}
+
+function trackingTemplate(html, postId) {
+    const atags = html.match(/(<a\s+(?:[^>]*?\s+)?href=')([^']*)(')|(<a\s+(?:[^>]*?\s+)?href=")([^"]*)(")/ig);
+    let i = 0;
+    console.log(html);
+    if (!atags) return html;
+
+    atags.forEach(atag => {
+        const link = atag.getLink();
+        console.log(link);
+        const tracking = addTrackingEmail(postId, link, 'c', `l`, i++);
+        // const tracking = shortenURL(link, `${postId}cl${i++}`);
+        html = html.replace(link, tracking);
+        // return Promise.resolve(link);
+    });
+    return html;
 }
 
 function sendEmailTemplate(email, mail, notiId) {
@@ -766,7 +815,7 @@ function sendEmailTemplate(email, mail, notiId) {
 
     var htmlMail = '';
     if (mail.description1) {
-      mail.description = mail.description1
+      mail.description = trackingTemplate(mail.description1, notiId)
       htmlMail = htmlMail + header + '\n' +
         '    <!--[if mso | IE]>\n' +
         '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
@@ -783,7 +832,7 @@ function sendEmailTemplate(email, mail, notiId) {
     }
 
     if (mail.description2) {
-      mail.description = mail.description2
+      mail.description = trackingTemplate(mail.description2, notiId)
       htmlMail = htmlMail + '\n' +
         '    <!--[if mso | IE]>\n' +
         '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
@@ -800,7 +849,7 @@ function sendEmailTemplate(email, mail, notiId) {
 
     }
     if (mail.description3) {
-      mail.description = mail.description3
+      mail.description = trackingTemplate(mail.description3, notiId)
       htmlMail = htmlMail + '\n' +
         '    <!--[if mso | IE]>\n' +
         '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
@@ -866,7 +915,7 @@ function sendEmailTemplate(email, mail, notiId) {
       htmlMail = htmlMail + card_footer
     }
     if (mail.description4) {
-      mail.description = mail.description4
+      mail.description = trackingTemplate(mail.description4, notiId)
       htmlMail = htmlMail + '\n' +
         '    <!--[if mso | IE]>\n' +
         '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
@@ -893,6 +942,8 @@ function startSend(userData, mail, channel, notiId) {
   return new Promise((sResolve, sReject) => {
     console.log('startSend', notiId, mail.title);
 
+    var description = _.template(mail.description1);
+    mail.description1 = description({ name: userData.name });
     const sendEmailTempPromise = new Promise((resolve, reject) => {
       if (userData.email && userData.wrongEmail != true && channel.letter && userData.email.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/)) {
         sendEmailTemplate(userData.email, mail, notiId)
@@ -2323,4 +2374,8 @@ process.on('uncaughtException', function (err) {
         }
     };
     axios.post('https://jobobot.herokuapp.com/noti', data);
+});
+
+app.get('/groupData', (req, res) => {
+    res.status(200).json(_.toArray(groupData));
 });
