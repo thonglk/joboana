@@ -350,13 +350,15 @@ function fetchFBPost() {
                     if (post.err) {
                         still_alive = false
                         error = post.err;
-                    } else if (post.result && post.result.reactions) reactions = {
-                        haha: post.result.reactions.data.filter(haha => haha.type === 'HAHA').length,
-                        like: post.result.reactions.data.filter(like => like.type === 'LIKE').length,
-                        love: post.result.reactions.data.filter(love => love.type === 'LOVE').length,
-                        wow: post.result.reactions.data.filter(wow => wow.type === 'WOW').length,
-                        sad: post.result.reactions.data.filter(sad => sad.type === 'SAD').length,
-                        angry: post.result.reactions.data.filter(angry => angry.type === 'ANGRY').length
+                    } else if (post.result && post.result.reactions) {
+                        reactions = {
+                            haha: post.result.reactions.data.filter(haha => haha.type === 'HAHA').length,
+                            like: post.result.reactions.data.filter(like => like.type === 'LIKE').length,
+                            love: post.result.reactions.data.filter(love => love.type === 'LOVE').length,
+                            wow: post.result.reactions.data.filter(wow => wow.type === 'WOW').length,
+                            sad: post.result.reactions.data.filter(sad => sad.type === 'SAD').length,
+                            angry: post.result.reactions.data.filter(angry => angry.type === 'ANGRY').length
+                        }
                     } else if (post.result && post.result.comments) {
                         comments = post.result.comments.data.length;
                     }
@@ -368,7 +370,10 @@ function fetchFBPost() {
                     }
                     // post.checks.push(check);
                     // console.log(check);
-                    return FacebookPost.findByIdAndUpdate(post._id, {$push: {checks: check},still_alive:still_alive}, {new: true});
+                    return FacebookPost.findByIdAndUpdate(post._id, {
+                        $push: {checks: check},
+                        still_alive: still_alive
+                    }, {new: true});
                     // return post;
                 }));
             })
@@ -1092,7 +1097,7 @@ app.get('/getallPost', (req, res) => {
 });
 
 app.get('/getfbPost', function (req, res) {
-    let {p: page, poster, to, jobId,id, still_alive,schedule} = req.query
+    let {p: page, poster, to, jobId, id, still_alive, schedule} = req.query
     var query = {}
     if (poster) {
         query.poster = poster
@@ -1109,8 +1114,8 @@ app.get('/getfbPost', function (req, res) {
     if (schedule) {
         query.time = {$gt: Date.now()}
     }
-    if(still_alive){
-        query.id = {$ne: null}
+    if (still_alive) {
+        query.id = {$ne: null};
         query.still_alive = true
 
     }
@@ -1127,7 +1132,7 @@ app.get('/getfbPost', function (req, res) {
 });
 
 app.delete('/removePost', (req, res, next) => {
-    let {p: page, poster, to, jobId,id, still_alive,schedule} = req.query
+    let {p: page, poster, to, jobId, id, still_alive, schedule} = req.query
     var query = {}
     if (poster) {
         query.poster = poster
@@ -1144,7 +1149,7 @@ app.delete('/removePost', (req, res, next) => {
     if (schedule) {
         query.time = {$gt: Date.now()}
     }
-    if(still_alive){
+    if (still_alive) {
         query.id = {$ne: null}
         query.still_alive = true
 
