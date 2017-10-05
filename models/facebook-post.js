@@ -55,7 +55,8 @@ var postSchema = new _mongoose.Schema({
         default: Date.now()
     },
     checks: [],
-    to: String
+    to: String,
+    still_alive: Boolean
 }, { collection: 'facebookPost' });
 
 postSchema.set('toJSON', { virtuals: true });

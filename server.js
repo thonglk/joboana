@@ -329,6 +329,7 @@ function fetchFBPost() {
             })
             .then(posts => {
                 console.log('obj');
+                var still_alive = true
                 return Promise.all(posts.map(post => {
                     const check = {
                         at: Date.now()
@@ -347,6 +348,7 @@ function fetchFBPost() {
                     let comments = 0;
 
                     if (post.err) {
+                        still_alive = false
                         error = post.err;
                     } else if (post.result && post.result.reactions) reactions = {
                         haha: post.result.reactions.data.filter(haha => haha.type === 'HAHA').length,
@@ -355,8 +357,7 @@ function fetchFBPost() {
                         wow: post.result.reactions.data.filter(wow => wow.type === 'WOW').length,
                         sad: post.result.reactions.data.filter(sad => sad.type === 'SAD').length,
                         angry: post.result.reactions.data.filter(angry => angry.type === 'ANGRY').length
-                    }
-                    else if (post.result && post.result.comments) {
+                    } else if (post.result && post.result.comments) {
                         comments = post.result.comments.data.length;
                     }
 
@@ -367,7 +368,7 @@ function fetchFBPost() {
                     }
                     // post.checks.push(check);
                     // console.log(check);
-                    return FacebookPost.findByIdAndUpdate(post._id, {$push: {checks: check}}, {new: true});
+                    return FacebookPost.findByIdAndUpdate(post._id, {$push: {checks: check},still_alive:still_alive}, {new: true});
                     // return post;
                 }));
             })
@@ -1091,7 +1092,7 @@ app.get('/getallPost', (req, res) => {
 });
 
 app.get('/getfbPost', function (req, res) {
-    let {p: page, poster, to, jobId,id, still_alive} = req.query
+    let {p: page, poster, to, jobId,id, still_alive,schedule} = req.query
     var query = {}
     if (poster) {
         query.poster = poster
@@ -1103,11 +1104,20 @@ app.get('/getfbPost', function (req, res) {
         query.jobId = jobId
     }
     if (id) {
-        query.id = {$exists: true}
+        query.id = {$ne: null}
+    }
+    if (schedule) {
+        query.time = {$gt: Date.now()}
+    }
+    if(still_alive){
+        query.id = {$ne: null}
+        query.still_alive = true
+
     }
 
     FacebookPost.find(query)
         .then(posts => {
+
             var sorted = _.sortBy(posts, function (card) {
                 return -card.time
             });
