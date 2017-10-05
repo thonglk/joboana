@@ -1126,6 +1126,35 @@ app.get('/getfbPost', function (req, res) {
         .catch(err => res.status(500).json(err));
 });
 
+app.delete('/removePost', (req, res, next) => {
+    let {p: page, poster, to, jobId,id, still_alive,schedule} = req.query
+    var query = {}
+    if (poster) {
+        query.poster = poster
+    }
+    if (to) {
+        query.to = to
+    }
+    if (jobId) {
+        query.jobId = jobId
+    }
+    if (id) {
+        query.id = {$ne: null}
+    }
+    if (schedule) {
+        query.time = {$gt: Date.now()}
+    }
+    if(still_alive){
+        query.id = {$ne: null}
+        query.still_alive = true
+
+    }
+    FacebookPost.remove(query)
+        .then(result => res.status(200).json(result))
+        .catch(err => res.status(500).send(err));
+
+});
+
 app.post('/newPost', (req, res, next) => {
     const post = req.body;
 
