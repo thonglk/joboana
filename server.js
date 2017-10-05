@@ -134,6 +134,32 @@ var publishChannel = {
 var db = joboTest.database();
 var db2 = joboPxl.database();
 
+db2.ref('tempNoti').on('child_added', function (snap) {
+    var noti = snap.val()
+    if (!noti) return
+    if (!noti.notiId) noti.notiId = keygen()
+    notificationCol.insert(noti, function (err, data) {
+        if (err) {
+            console.log(err)
+        } else {
+            db2.ref('tempNoti').child(snap.key).remove()
+            if (noti.time > Date.now() && noti.time < Date.now() + 86400 * 1000) {
+                console.log('noti', a++);
+                schedule.scheduleJob(noti.time, function () {
+                    startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+                        console.log('array', array)
+                    })
+                })
+                console.log('scheduled notification', noti.notiId)
+            } else {
+                console.log('save notification', noti.notiId)
+            }
+
+        }
+    })
+
+})
+
 
 var configRef = db.ref('config');
 var notificationRef = db2.ref('notihihi');
@@ -1181,37 +1207,6 @@ app.post('/newPost', (req, res, next) => {
         .catch(err => res.status(500).json(err));
 });
 
-app.post('/newNoti', (req, res, next) => {
-    const noti = req.body;
-
-    if (!noti) res.status(403).json('Noti post data is required');
-    if (!noti.notiId) noti.notiId = keygen()
-    notificationCol.insert(noti, function (err, data) {
-        if (err) {
-            res.send({code: 'error', err})
-        } else {
-
-            if (noti.time > Date.now() && noti.time < Date.now() + 86400 * 1000) {
-                console.log('noti', a++);
-                schedule.scheduleJob(noti.time, function () {
-                    startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-                        console.log('array', array)
-                    })
-                })
-                console.log('scheduled notification', noti.notiId)
-                res.send({code: 'success', msg: 'scheduled', id: noti.notiId})
-            } else {
-                console.log('save notification', noti.notiId)
-
-                res.send({code: 'success', msg: 'saved', id: noti.notiId})
-
-            }
-
-        }
-    })
-
-
-});
 
 function addShortLinkFBPost(postId, text) {
     const link = text.match(/https:\/\/.*\$primary/g)[0].replace(/\$primary/g, '');
