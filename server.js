@@ -154,7 +154,6 @@ db2.ref('tempNoti').on('child_added', function (snap) {
             } else {
                 console.log('save notification', noti.notiId)
             }
-
         }
     })
 
@@ -963,7 +962,9 @@ function sendEmailTemplate(email, mail, notiId) {
             htmlMail = htmlMail + outtro
         }
 
-        htmlMail = htmlMail + footer
+        htmlMail = htmlMail + footer + `<hr>
+<p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>
+`;
         sendEmail(email, mail, htmlMail, notiId)
             .then(notiId => resolve(notiId))
             .catch(err => reject(err));
@@ -977,7 +978,7 @@ function startSend(userData, mail, channel, notiId) {
         var description = _.template(mail.description1);
         mail.description1 = description({name: userData.name});
         const sendEmailTempPromise = new Promise((resolve, reject) => {
-            if (userData.email && userData.wrongEmail != true && channel.letter && userData.email.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/)) {
+            if (userData.email && !userData.unsubscribe && userData.wrongEmail != true && channel.letter && userData.email.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/)) {
                 sendEmailTemplate(userData.email, mail, notiId)
                     .then(notiId => resolve({
                         notiId,
