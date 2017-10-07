@@ -17,8 +17,8 @@
       <file leaf-file-name="server.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/server.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="317">
-              <caret line="966" column="2" lean-forward="false" selection-start-line="966" selection-start-column="2" selection-end-line="966" selection-end-column="2" />
+            <state relative-caret-position="232">
+              <caret line="99" column="35" lean-forward="true" selection-start-line="99" selection-start-column="35" selection-end-line="99" selection-end-column="35" />
               <folding>
                 <marker date="1507274134000" expanded="true" signature="21412:21444" ph="..." />
                 <marker date="1507274134000" expanded="true" signature="21539:21564" ph="..." />
@@ -251,6 +251,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scratches" />
       <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
@@ -268,7 +269,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -312,12 +312,13 @@
       <workItem from="1505877953961" duration="614000" />
       <workItem from="1505899660028" duration="24111000" />
       <workItem from="1506030129982" duration="16958000" />
-      <workItem from="1507219627009" duration="5834000" />
+      <workItem from="1507219627009" duration="7590000" />
+      <workItem from="1507280242952" duration="1700000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="155933000" />
+    <option name="totallyTimeSpent" value="159389000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1280" height="800" extended-state="0" />
@@ -1054,8 +1055,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/server.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="317">
-          <caret line="966" column="2" lean-forward="false" selection-start-line="966" selection-start-column="2" selection-end-line="966" selection-end-column="2" />
+        <state relative-caret-position="232">
+          <caret line="99" column="35" lean-forward="true" selection-start-line="99" selection-start-column="35" selection-end-line="99" selection-end-column="35" />
           <folding>
             <marker date="1507274134000" expanded="true" signature="21412:21444" ph="..." />
             <marker date="1507274134000" expanded="true" signature="21539:21564" ph="..." />

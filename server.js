@@ -1260,7 +1260,7 @@ function PublishFacebook(to, content, poster, postId) {
                         }
                     });
             } else {
-                graph.post(to + "/feed?access_token=" + accessToken, {"message": content.text},
+                graph.post(to + "/feed?access_token=" + accessToken, {"message": addShortLinkFBPost(postId, content.text)},
                     function (err, res) {
                         // returns the post id
                         if (err) {
