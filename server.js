@@ -123,16 +123,9 @@ var joboTest = firebase.initializeApp({
 }, 'joboTest');
 
 
-var publishChannel = {
-    Jobo: {
-        pageId: '385066561884380',
-        token: 'EAAEMfZASjMhgBAOWKcfIFZBPvH1OSdZAg2VFH103o0cNimDFg0wxtcSn5E3eaY4C8sDGQYBiaSZAxY8WRpaIj51hB2UfYZAqk3Wd1UiUoc393wgRZBpkiFR1iEGjfb1oE272ZCxkxECLiT1x6UcqYRZCemdpVmt1TnPupJgL8jlcdgZDZD'
-    },
-};
-
-
 var db = joboTest.database();
 var db2 = joboPxl.database();
+
 
 db2.ref('tempNoti').on('child_added', function (snap) {
     var noti = snap.val()
@@ -286,22 +279,29 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
 app.get('/', function (req, res, next) {
     res.send('Jobo' + a + ' ' + b)
 })
+
 app.get('/l/:queryString', function (req, res, next) {
     const queryString = req.params.queryString;
     if (!queryString) res.send('Jobo')
-    const notiId = queryString.substr(0, 6)
-    const p = queryString[6]
-    const t = queryString[7]
+    var length = queryString.length
+    var posT = length-1
+    var posP = length-2
+
+    const notiId = queryString.substr(0, posP)
+
+    const p = queryString[posP]
+    const t = queryString[posT]
 
 
     var platform = configP[p]
     var type = configT[t]
+    console.log(notiId, p, t)
+
     console.log(notiId, platform, type)
 
     findLink(queryString)
         .then(foundLink => {
             console.log(notiId);
-            // return Promise.resolve(foundLink);
             return tracking(notiId, platform, foundLink.url, foundLink.type);
         })
         .then(result => {
@@ -468,7 +468,12 @@ function findLink(queryString) {
             .child(queryString)
             .once('value')
             .then(link => {
-                resolve(link.val());
+                if (link.val()) {
+                    resolve(link.val());
+                } else {
+                    console.log('link not found');
+                    reject({err:'link not found'});
+                }
             })
             .catch(err => {
                 console.log(err);
