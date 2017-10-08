@@ -1211,6 +1211,7 @@ app.post('/newPost', (req, res, next) => {
 
 function addShortLinkFBPost(postId, text) {
     const link = text.match(/https:\/\/.*\$primary/g)[0].replace(/\$primary/g, '');
+    console.log(link);
     if (link) {
         text = text.replace(/https:\/\/.*\$primary/g, addTrackingEmail(postId, link, 'c', 'f'));
     }
@@ -1226,7 +1227,7 @@ function PublishFacebook(to, content, poster, postId) {
             if (content.image == 99) {
                 graph.post(to + "/photos?access_token=" + accessToken, {
                         "url": content.image,
-                        "caption": addShortLinkFBPost(postId, content.text)
+                        "caption": content.text
                     },
                     function (err, res) {
                         // returns the post id
@@ -1260,12 +1261,12 @@ function PublishFacebook(to, content, poster, postId) {
                         }
                     });
             } else {
-                graph.post(to + "/feed?access_token=" + accessToken, {"message": addShortLinkFBPost(postId, content.text)},
+                graph.post(to + "/feed?access_token=" + accessToken, {"message": content.text},
                     function (err, res) {
                         // returns the post id
                         if (err) {
                             console.log(err.message, to, poster);
-                            // facebookPostRef.child(postId).update({ sent_error: err.message })
+
                             if (facebookAccount[poster].messengerId) {
                                 data = {
                                     recipientIds: facebookAccount[poster].messengerId,
