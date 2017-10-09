@@ -284,8 +284,8 @@ app.get('/l/:queryString', function (req, res, next) {
     const queryString = req.params.queryString;
     if (!queryString) res.send('Jobo')
     var length = queryString.length
-    var posT = length-1
-    var posP = length-2
+    var posT = length - 1
+    var posP = length - 2
 
     const notiId = queryString.substr(0, posP)
 
@@ -472,7 +472,7 @@ function findLink(queryString) {
                     resolve(link.val());
                 } else {
                     console.log('link not found');
-                    reject({err:'link not found'});
+                    reject({err: 'link not found'});
                 }
             })
             .catch(err => {
@@ -1270,7 +1270,8 @@ function PublishFacebook(to, content, poster, postId) {
                     function (err, res) {
                         // returns the post id
                         if (err) {
-                            console.log(err.message, to, poster);
+
+                            console.log(err, to, poster);
 
                             if (facebookAccount[poster].messengerId) {
                                 data = {
@@ -1512,7 +1513,7 @@ app.get('/token', (req, res, next) => {
 })
 
 app.get('/fbLLiveToken', (req, res, next) => {
-    const {accessToken, key, area = 'hcm ', userId = 'thonglk'} = req.query;
+    const {accessToken, key, area = 'hcm', userId = 'thonglk'} = req.query;
     getLongLiveToken(accessToken)
         .then(data => {
             configRef.child('facebookAccount').child(key).update({access_token: data.access_token, key, area, userId})
@@ -1580,8 +1581,6 @@ dumping.database().ref('answer').on('value', function (snap) {
         dumpling_answer = {}
     }
 })
-
-
 dumping.database().ref('user').on('value', function (snap) {
     dumpling_user = snap.val()
     if (!dumpling_user) {
@@ -1700,9 +1699,26 @@ app.get('/emailVerifier', (req, res) => {
         }
     });
 });
+String.prototype.simplify = function () {
+    return this.toLowerCase()
+        .replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a")
+        .replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e")
+        .replace(/ì|í|ị|ỉ|ĩ/g, "i")
+        .replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o")
+        .replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u")
+        .replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y")
+        .replace(/đ/g, "d")
+        .replace(/^\-+|\-+$/g, "")
+        .replace(/\s/g, '-');
+};
 
 let google = require('googleapis');
 let authentication = require("./google_auth");
+var auth
+authentication.authenticate().then((auths) => {
+    auth = auths;
+});
+var sheets = google.sheets('v4');
 
 function getData(auth, spreadsheetId, range) {
     return new Promise((resolve, reject) => {
@@ -1724,7 +1740,6 @@ function getData(auth, spreadsheetId, range) {
 
 function clearData(auth, spreadsheetId, range) {
     return new Promise((resolve, reject) => {
-        var sheets = google.sheets('v4');
         sheets.spreadsheets.values.clear({
             auth: auth,
             spreadsheetId,
@@ -1787,9 +1802,6 @@ function addSheet(auth, spreadsheetUrl, title, sheets) {
     });
 }
 
-authentication.authenticate().then((auth) => {
-    global.auth = auth;
-});
 
 
 app.get('/fbReports', (req, res, next) => {
@@ -2142,92 +2154,93 @@ app.use('/store', storeRouter);
 
 const leadRouter = express.Router({mergeParams: true});
 
-leadRouter.route('/export')
-    .get((req, res, next) => {
-        exportLead()
-            .then(data => res.status(200).json(data))
-            .catch(err => res.status(500).send(err));
-    });
-String.prototype.simplify = function () {
-    return this.toLowerCase()
-        .replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a")
-        .replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e")
-        .replace(/ì|í|ị|ỉ|ĩ/g, "i")
-        .replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o")
-        .replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u")
-        .replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y")
-        .replace(/đ/g, "d")
-        .replace(/^\-+|\-+$/g, "")
-        .replace(/\s/g, '-');
-};
-leadRouter.route('/collection')
-    .get((req, res, next) => {
-        importLead()
-            .then(leads => {
-                return Promise.all(leads.map(lead => {
-                    if (!lead[5]) return Promise.resolve(null);
-                    const phone = lead[5].replace(/\s+|-|\(|\)|\./g, '');
-                    leadCol.findOne({
-                        phone
-                    }, (err, result) => {
-                        if (err) return {status: 'err', err};
-                        else {
-                            if (!result) {
-                                leadCol.insertOne({
-                                    storeId: lead[2].simplify(),
-                                    userId: lead[1],
-                                    storeName: lead[2],
-                                    address: lead[3],
-                                    name: lead[4],
-                                    phone,
-                                    email: lead[6],
-                                    job: lead[7],
-                                    industry: lead[8],
-                                    ref: lead[9],
-                                    adminNote: [{
-                                        date: Date.now(),
-                                        note: lead[10],
-                                        id: `p${Date.now()}`,
-                                        adminId: lead[1]
-                                    }]
-                                });
-                            } else {
-                                const adminNote = _.toArray(result.adminNote);
+app.get('/lead/export', (req, res, next) => {
+    exportLead()
+        .then(data => res.status(200).json(data))
+        .catch(err => res.status(500).send(err));
+});
+app.get('/lead/collection', (req, res, next) => {
+    importLead()
+        .then(leads => {
+            return Promise.all(leads.map(lead => {
+                if (!lead[5]) return Promise.resolve(null);
+                const phone = lead[5].replace(/\s+|-|\(|\)|\./g, '');
+                leadCol.findOne({
+                    phone
+                }, (err, result) => {
+                    if (err) return {status: 'err', err};
+                    else {
+                        if (!result) {
+                            leadCol.insertOne({
+                                storeId: lead[2].simplify(),
+                                userId: lead[1],
+                                storeName: lead[2],
+                                address: lead[3],
+                                name: lead[4],
+                                phone,
+                                email: lead[6],
+                                job: lead[7],
+                                industry: lead[8],
+                                ref: lead[9],
+                                adminNote: [{
+                                    date: Date.now(),
+                                    note: lead[10],
+                                    id: `p${Date.now()}`,
+                                    adminId: lead[1]
+                                }]
+                            });
+                        } else {
+                            const adminNote = _.toArray(result.adminNote);
 
-                                if (adminNote && lead[10] && !adminNote.filter(note => note.note == lead[10])[0]) {
-                                    adminNote.push({
-                                        date: Date.now(),
-                                        note: lead[10],
-                                        id: `p${Date.now()}`,
-                                        adminId: lead[1]
-                                    });
-                                }
-                                leadCol.updateOne({
-                                    _id: result._id
-                                }, {
-                                    storeId: lead[2].simplify(),
-                                    userId: lead[1],
-                                    storeName: lead[2],
-                                    address: lead[3],
-                                    name: lead[4],
-                                    phone,
-                                    email: lead[6],
-                                    job: lead[7],
-                                    industry: lead[8],
-                                    ref: lead[9],
-                                    adminNote
+                            if (adminNote && lead[10] && !adminNote.filter(note => note.note == lead[10])[0]) {
+                                adminNote.push({
+                                    date: Date.now(),
+                                    note: lead[10],
+                                    id: `p${Date.now()}`,
+                                    adminId: lead[1]
                                 });
                             }
+                            leadCol.updateOne({
+                                _id: result._id
+                            }, {
+                                storeId: lead[2].simplify(),
+                                userId: lead[1],
+                                storeName: lead[2],
+                                address: lead[3],
+                                name: lead[4],
+                                phone,
+                                email: lead[6],
+                                job: lead[7],
+                                industry: lead[8],
+                                ref: lead[9],
+                                adminNote
+                            });
                         }
-                    });
-                }));
-            })
-            .then(results => res.status(200).json(results))
-            .catch(err => {
-                console.log(err);
-                res.status(500).send(err);
-            });
-    });
+                    }
+                });
+            }));
+        })
+        .then(results => res.status(200).json(results))
+        .catch(err => {
+            console.log(err);
+            res.status(500).send(err);
+        });
+});
+
+app.get('/lead/import', (req, res) => {
+    importLead()
+        .then(leads => res.status(200).json(leads))
+        .catch(err => res.status(500).send(err));
+});
+app.get('/clearData', (req, res) => {
+    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = 'LeadCOL!A2:L';
+
+    clearData(auth, spreadsheetId, range)
+        .then(values => res.send(values))
+        .catch(err => res.send(err));
+});
+
 
 function getLead() {
     return new Promise((resolve, reject) => {
@@ -2235,6 +2248,7 @@ function getLead() {
             if (err) {
                 reject(err);
             } else {
+                console.log('data', data.length)
                 resolve(data);
             }
         });
@@ -2258,6 +2272,7 @@ function exportLead() {
                 }));
             })
             .then(values => {
+                console.log('getLead', values.length)
                 return newLead(values);
             })
             .then(values => resolve(values))
@@ -2294,13 +2309,6 @@ function importLead() {
     });
 }
 
-app.use('/lead', leadRouter);
-
-app.get('/getLeadd', (req, res) => {
-    importLead()
-        .then(leads => res.status(200).json(leads))
-        .catch(err => res.status(500).send(err));
-});
 
 app.get('/removeAdminNote/:type', (req, res, next) => {
     const noteId = req.query.noteId;
