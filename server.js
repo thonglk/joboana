@@ -1803,7 +1803,6 @@ function addSheet(auth, spreadsheetUrl, title, sheets) {
 }
 
 
-
 app.get('/fbReports', (req, res, next) => {
     FacebookPost.find({id: {$ne: null}})
         .then(posts => {
@@ -2262,12 +2261,8 @@ function exportLead() {
                 return Promise.resolve(leads.map(lead => {
                     let adminNote = '';
                     if (lead.adminNote && lead.adminNote != '') {
-                        _.toArray(lead.adminNote).forEach(note => {
-                            if (!note) return;
-                            adminNote += `\nAdmin: ${note.adminId}\nNote: ${note.note}\nDate: ${new Date(note.date).toLocaleString()}\n`;
-                        });
+                        adminNote = JSON.stringify(lead.adminNote)
                     }
-
                     return [lead.storeId, lead.userId, lead.storeName, lead.address, lead.name, lead.phone, lead.email, lead.job, lead.industry, lead.ref, adminNote];
                 }));
             })
@@ -2303,8 +2298,24 @@ function importLead() {
 
         getData(auth, spreadsheetId, range)
             .then(rows => {
-                resolve(rows.filter(row => row[5]));
-            })
+                    rows.forEach(row => {
+                        var data = {
+                            storeId: row[0],
+                            incharge: row[1],
+                            storeName: row[2],
+                            address: row[3],
+                            name: row[4],
+                            phone: row[5],
+                            email: row[6],
+                            job: row[7],
+                            industry: row[8],
+                            ref: row[9],
+                        }
+                        leadCol.findOneAndUpdate({storeId: data.storeId}, data, {upsert: true})
+                    })
+                    resolve.send({code: 'success'})
+                }
+            )
             .catch(err => reject(err));
     });
 }
