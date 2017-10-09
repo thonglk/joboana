@@ -2158,6 +2158,38 @@ app.get('/lead/export', (req, res, next) => {
         .then(data => res.status(200).json(data))
         .catch(err => res.status(500).send(err));
 });
+
+function importLead() {
+    return new Promise((resolve, reject) => {
+        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+        const range = 'New_LeadCOL!A2:L';
+
+        getData(auth, spreadsheetId, range)
+            .then(leads => {
+                return Promise.all(leads.map(lead => {
+                    var data = {
+                        storeId: lead[2].simplify(),
+                        userId: lead[1],
+                        storeName: lead[2],
+                        address: lead[3],
+                        name: lead[4],
+                        phone,
+                        email: lead[6],
+                        job: lead[7],
+                        industry: lead[8],
+                        ref: lead[9],
+                    }
+                    leadCol.findOneAndUpdate({storeId: data.storeId}, data, {upsert: true}).then(function () {
+                        return Promise.resolve({storeId: data.storeId})
+                    })
+
+                }))
+            })
+            .then(results => resolve(results))
+            .catch(err => reject(err));
+    });
+}
+
 app.get('/lead/collection', (req, res, next) => {
     importLead()
         .then(leads => {
@@ -2291,34 +2323,6 @@ function newLead(values) {
 }
 
 ///\.|-|\(|\)|\s/g
-function importLead() {
-    return new Promise((resolve, reject) => {
-        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-        const range = 'New_LeadCOL!A2:L';
-
-        getData(auth, spreadsheetId, range)
-            .then(rows => {
-                    rows.forEach(row => {
-                        var data = {
-                            storeId: row[0],
-                            incharge: row[1],
-                            storeName: row[2],
-                            address: row[3],
-                            name: row[4],
-                            phone: row[5],
-                            email: row[6],
-                            job: row[7],
-                            industry: row[8],
-                            ref: row[9],
-                        }
-                        leadCol.findOneAndUpdate({storeId: data.storeId}, data, {upsert: true})
-                    })
-                    resolve.send({code: 'success'})
-                }
-            )
-            .catch(err => reject(err));
-    });
-}
 
 
 app.get('/removeAdminNote/:type', (req, res, next) => {
