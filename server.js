@@ -2165,26 +2165,6 @@ function importLead() {
         const range = 'New_LeadCOL!A2:L';
 
         getData(auth, spreadsheetId, range)
-            .then(leads => {
-                return Promise.all(leads.map(lead => {
-                    var data = {
-                        storeId: lead[2].simplify(),
-                        userId: lead[1],
-                        storeName: lead[2],
-                        address: lead[3],
-                        name: lead[4],
-                        phone,
-                        email: lead[6],
-                        job: lead[7],
-                        industry: lead[8],
-                        ref: lead[9],
-                    }
-                    leadCol.findOneAndUpdate({storeId: data.storeId}, data, {upsert: true}).then(function () {
-                        return Promise.resolve({storeId: data.storeId})
-                    })
-
-                }))
-            })
             .then(results => resolve(results))
             .catch(err => reject(err));
     });
@@ -2194,61 +2174,32 @@ app.get('/lead/collection', (req, res, next) => {
     importLead()
         .then(leads => {
             return Promise.all(leads.map(lead => {
-                if (!lead[5]) return Promise.resolve(null);
-                const phone = lead[5].replace(/\s+|-|\(|\)|\./g, '');
-                leadCol.findOne({
-                    phone
-                }, (err, result) => {
+                var data = {
+                    storeId: lead[2].simplify(),
+                    userId: lead[1],
+                    storeName: lead[2],
+                    address: lead[3],
+                    name: lead[4],
+                    phone: lead[5],
+                    email: lead[6],
+                    job: lead[7],
+                    industry: lead[8],
+                    ref: lead[9],
+                }
+                leadCol.findOne({storeId: data.storeId},(err, result) => {
                     if (err) return {status: 'err', err};
                     else {
                         if (!result) {
-                            leadCol.insertOne({
-                                storeId: lead[2].simplify(),
-                                userId: lead[1],
-                                storeName: lead[2],
-                                address: lead[3],
-                                name: lead[4],
-                                phone,
-                                email: lead[6],
-                                job: lead[7],
-                                industry: lead[8],
-                                ref: lead[9],
-                                adminNote: [{
-                                    date: Date.now(),
-                                    note: lead[10],
-                                    id: `p${Date.now()}`,
-                                    adminId: lead[1]
-                                }]
-                            });
+                            leadCol.insertOne(data);
+                            return {status: 'new', storeId: data.storeId};
                         } else {
-                            const adminNote = _.toArray(result.adminNote);
-
-                            if (adminNote && lead[10] && !adminNote.filter(note => note.note == lead[10])[0]) {
-                                adminNote.push({
-                                    date: Date.now(),
-                                    note: lead[10],
-                                    id: `p${Date.now()}`,
-                                    adminId: lead[1]
-                                });
-                            }
                             leadCol.updateOne({
                                 _id: result._id
-                            }, {
-                                storeId: lead[2].simplify(),
-                                userId: lead[1],
-                                storeName: lead[2],
-                                address: lead[3],
-                                name: lead[4],
-                                phone,
-                                email: lead[6],
-                                job: lead[7],
-                                industry: lead[8],
-                                ref: lead[9],
-                                adminNote
-                            });
+                            }, data);
                         }
                     }
-                });
+                })
+
             }));
         })
         .then(results => res.status(200).json(results))
