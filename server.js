@@ -197,30 +197,6 @@ function init() {
     var a = 0,
         b = 0;
 
-    // notificationRef.on('child_added', function (snap) {
-    //   var noti = snap.val()
-    //   if (noti && noti.time > startTime && noti.time < endTime) {
-    //     console.log('noti', a++);
-    //     schedule.scheduleJob(noti.time, function () {
-    //       console.log('start', noti.time);
-
-    //       startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-    //         console.log('array', array)
-    //       })
-    //     })
-    //   }
-    // });
-
-    // notificationCol.find({ 'time': { $gt: startTime, $lt: endTime } }, function (err, notis) {
-    //   notis.forEach(function (noti) {
-    //     console.log('noti', a++);
-    //     schedule.scheduleJob(noti.time, function () {
-    //       console.log('start', noti.time);
-    //       startSend(noti.userData, noti.mail, noti.channel, noti.notiId)
-    //     })
-    //   })
-    // })
-
 
     FacebookPost.find({'time': {$gt: startTime, $lt: endTime}})
         .then(posts => {
@@ -282,20 +258,19 @@ app.get('/', function (req, res, next) {
 
 app.get('/l/:queryString', function (req, res, next) {
     const queryString = req.params.queryString;
-    if (!queryString) res.send('Jobo')
-    var length = queryString.length
+    if (!queryString)  res.redirect(CONFIG.WEBURL+'/jobseeker/dash');
+
+    var dataStr = queryString.split(":")
     var posT = length - 1
     var posP = length - 2
 
-    const notiId = queryString.substr(0, posP)
-
-    const p = queryString[posP]
-    const t = queryString[posT]
-
+    const notiId = dataStr[0]
+    const p = dataStr[1]
+    const t = dataStr[2]
+    const i = dataStr[3]
 
     var platform = configP[p]
     var type = configT[t]
-    console.log(notiId, p, t)
 
     console.log(notiId, platform, type)
 
@@ -1223,81 +1198,43 @@ function addShortLinkFBPost(postId, text) {
     return text;
 }
 
-function PublishFacebook(to, content, poster, postId) {
+function PublishFacebook(to, content, poster, postId, type) {
     return new Promise((resolve, reject) => {
         a++
         console.log('scheduleJob_PublishFacebook_run', to, poster, postId)
         var accessToken = facebookAccount[poster].access_token
         if (to && content && accessToken) {
-            if (content.image == 99) {
-                graph.post(to + "/photos?access_token=" + accessToken, {
-                        "url": content.image,
-                        "caption": content.text
-                    },
-                    function (err, res) {
-                        // returns the post id
-                        if (err) {
-                            console.log(err.message, to, poster);
-                            // facebookPostRef.child(postId).update({ sent_error: err.message })
-                            if (facebookAccount[poster].messengerId) {
-                                data = {
-                                    recipientIds: facebookAccount[poster].messengerId,
-                                    messages: {
-                                        text: `☻ Facebook account error at account ${poster}: ${err.message}\nGroup: https://fb.com/groups/${to}`
-                                    }
-                                };
-                                axios.post('https://jobobot.herokuapp.com/noti', data);
-                            }
-                            FacebookPost.findOneAndUpdate({postId}, {
-                                sent_error: err.message
-                            }, {new: true})
-                                .then(updatedPost => resolve(updatedPost))
-                                .catch(err => reject(err));
-                        } else {
-                            var id = res.id;
-                            console.log(id);
-                            // facebookPostRef.child(postId).update({ id, sent: Date.now() })
-                            FacebookPost.findOneAndUpdate({postId}, {
-                                id,
-                                sent: Date.now()
-                            }, {new: true})
-                                .then(updatedPost => resolve(updatedPost))
-                                .catch(err => reject(err));
-                        }
-                    });
-            } else {
-                graph.post(to + "/feed?access_token=" + accessToken, {"message": content.text},
-                    function (err, res) {
-                        // returns the post id
-                        if (err) {
+            var url = to + "/feed?access_token=" + accessToken
+            var params = {"message": content.text}
 
-                            console.log(err, to, poster);
-
-                            if (facebookAccount[poster].messengerId) {
-                                data = {
-                                    recipientIds: facebookAccount[poster].messengerId,
-                                    messages: {
-                                        text: `☻ Facebook account error at account ${poster}: ${err.message}\nGroup: https://fb.com/groups/${to}`
-                                    }
-                                };
-                                axios.post('https://jobobot.herokuapp.com/noti', data);
-                            }
-
-                            FacebookPost.findOneAndUpdate({postId}, {
-                                sent_error: err.message
-                            }, {new: true})
-                                .then(updatedPost => resolve(updatedPost))
-                                .catch(err => reject(err));
-                        } else {
-                            var id = res.id;
-                            console.log(id);
-                            // facebookPostRef.child(postId).update({ id, sent: Date.now() })
-                            FacebookPost.findOneAndUpdate({postId}, {id, sent: Date.now()}, {new: true})
-                                .then(updatedPost => resolve(updatedPost))
-                                .catch(err => reject(err));
-                        }
-                    });
+            if (type == 'image') {
+                url = to + "/photos?access_token=" + accessToken
+                params = {
+                    "url": content.image,
+                    "caption": content.text
+                }
             }
+            graph.post(url, params,
+                function (err, res) {
+                    // returns the post id
+                    if (err) {
+
+                        console.log(err.message, to, poster);
+
+                        FacebookPost.findOneAndUpdate({postId}, {
+                            sent_error: err.message
+                        }, {new: true})
+                            .then(updatedPost => resolve(updatedPost))
+                            .catch(err => reject(err));
+                    } else {
+                        var id = res.id;
+                        console.log(id);
+                        // facebookPostRef.child(postId).update({ id, sent: Date.now() })
+                        FacebookPost.findOneAndUpdate({postId}, {id, sent: Date.now()}, {new: true})
+                            .then(updatedPost => resolve(updatedPost))
+                            .catch(err => reject(err));
+                    }
+                });
         }
     });
 }
@@ -2151,7 +2088,6 @@ function importStore({storeId = '=Row()-3', type, incharge = 'thaohp', storeName
 
 app.use('/store', storeRouter);
 
-const leadRouter = express.Router({mergeParams: true});
 
 app.get('/lead/export', (req, res, next) => {
     exportLead()
@@ -2185,8 +2121,8 @@ app.get('/lead/collection', (req, res, next) => {
                     job: lead[7],
                     industry: lead[8],
                     ref: lead[9],
-                }
-                leadCol.findOne({storeId: data.storeId},(err, result) => {
+                };
+                leadCol.findOne({storeId: data.storeId}, (err, result) => {
                     if (err) return {status: 'err', err};
                     else {
                         if (!result) {
