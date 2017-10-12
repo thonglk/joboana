@@ -261,8 +261,6 @@ app.get('/l/:queryString', function (req, res, next) {
     if (!queryString)  res.redirect(CONFIG.WEBURL+'/jobseeker/dash');
 
     var dataStr = queryString.split(":")
-    var posT = length - 1
-    var posP = length - 2
 
     const notiId = dataStr[0]
     const p = dataStr[1]
