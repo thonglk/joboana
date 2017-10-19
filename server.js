@@ -220,7 +220,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         let mailOptions = {
             from: {
                 name: mail.name || 'Jobo | Tìm việc nhanh',
-                address: mail.address || 'contact@jobo.asia'
+                address: mail.address || 'contact@joboapp.com'
             },
             bcc: mail.bcc,
             to: addressTo, // list of receivers
