@@ -358,7 +358,7 @@ function fetchFBPost() {
                             angry: post.result.reactions.data.filter(angry => angry.type === 'ANGRY').length
                         }
                     } else if (post.result && post.result.comments) {
-                        comments = post.result.comments.data.length;
+                        comments = post.result.comments.data;
                     }
 
                     if (error) check.error = error;
