@@ -237,7 +237,6 @@ app.get('/sendEmail', (req, res) => {
         console.log('Email sent:', addressTo)
 
 
-
     });
 
 })
@@ -341,13 +340,13 @@ app.get('/viewFBpost', function (req, res) {
     fetchFBPost().then(function (result) {
         res.status(200).json(result);
     }).catch(function (err) {
-        res.status(500).send(err);
+        res.status(500).json(err);
     })
 })
 
 function fetchFBPost() {
     return new Promise((resolve, reject) => {
-        FacebookPost.find({id: {$ne: null}})
+        FacebookPost.find({still_alive: true})
             .then(posts => {
                 return Promise.all(posts.map(post => {
                     return viewFBpost(post._doc);
@@ -357,9 +356,7 @@ function fetchFBPost() {
                 console.log('obj');
                 var still_alive = true
                 return Promise.all(posts.map(post => {
-                    const check = {
-                        at: Date.now()
-                    }
+                    const checkAt = Date.now()
 
                     let reactions = {
                         haha: 0,
@@ -369,37 +366,37 @@ function fetchFBPost() {
                         sad: 0,
                         angry: 0
                     };
-
-                    let error = null;
-                    let comments = 0;
+                    let comments = null
+                    let check_error = null;
 
                     if (post.err) {
                         still_alive = false
-                        error = post.err;
-                    } else if (post.result && post.result.reactions) {
-                        reactions = {
-                            haha: post.result.reactions.data.filter(haha => haha.type === 'HAHA').length,
-                            like: post.result.reactions.data.filter(like => like.type === 'LIKE').length,
-                            love: post.result.reactions.data.filter(love => love.type === 'LOVE').length,
-                            wow: post.result.reactions.data.filter(wow => wow.type === 'WOW').length,
-                            sad: post.result.reactions.data.filter(sad => sad.type === 'SAD').length,
-                            angry: post.result.reactions.data.filter(angry => angry.type === 'ANGRY').length
+                        check_error = post.err;
+                        console.log('post.err', check_error)
+
+                    } else if (post.result) {
+                        if (post.result.reactions) {
+                            reactions = {
+                                haha: post.result.reactions.data.filter(haha => haha.type === 'HAHA').length,
+                                like: post.result.reactions.data.filter(like => like.type === 'LIKE').length,
+                                love: post.result.reactions.data.filter(love => love.type === 'LOVE').length,
+                                wow: post.result.reactions.data.filter(wow => wow.type === 'WOW').length,
+                                sad: post.result.reactions.data.filter(sad => sad.type === 'SAD').length,
+                                angry: post.result.reactions.data.filter(angry => angry.type === 'ANGRY').length
+                            }
                         }
-                    } else if (post.result && post.result.comments) {
-                        comments = post.result.comments.data;
+                        if (post.result.comments) {
+                            comments = post.result.comments.data;
+                            console.log(post.id)
+
+                        }
+
                     }
 
-                    if (error) check.error = error;
-                    else {
-                        check.reactions = reactions;
-                        check.comments = comments;
-                    }
+
                     // post.checks.push(check);
                     // console.log(check);
-                    return FacebookPost.findByIdAndUpdate(post._id, {
-                        $set: check,
-                        still_alive: still_alive
-                    }, {new: true});
+                    return FacebookPost.findByIdAndUpdate(post._id, {checkAt, reactions,comments,check_error,still_alive}, {new: true});
                     // return post;
                 }));
             })
@@ -1255,8 +1252,9 @@ function PublishFacebook(to, content, poster, postId, type) {
                     } else {
                         var id = res.id;
                         console.log(id);
+                        var still_alive = true
                         // facebookPostRef.child(postId).update({ id, sent: Date.now() })
-                        FacebookPost.findOneAndUpdate({postId}, {id, sent: Date.now()}, {new: true})
+                        FacebookPost.findOneAndUpdate({postId}, {id,still_alive, sent: Date.now()}, {new: true})
                             .then(updatedPost => resolve(updatedPost))
                             .catch(err => reject(err));
                     }

@@ -8,7 +8,9 @@ var _mongooseTimestamp = require('mongoose-timestamp');
 
 var _mongooseTimestamp2 = _interopRequireDefault(_mongooseTimestamp);
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : {default: obj};
+}
 
 var postSchema = new _mongoose.Schema({
     id: {
@@ -19,7 +21,7 @@ var postSchema = new _mongoose.Schema({
     jobId: String,
     postId: {
         type: String,
-        index: { unique: true }
+        index: {unique: true}
     },
     poster: {
         type: String,
@@ -56,11 +58,28 @@ var postSchema = new _mongoose.Schema({
     },
     checks: [],
     to: String,
-    still_alive: Boolean
-}, { collection: 'facebookPost' });
+    still_alive: Boolean,
+    checkAt: {
+        type: Date,
+        default: null
+    },
+    comments: {
+        type: Array,
+        default: null
+    },
+    reactions: {
+        type: Object,
+        default: null
+    },
+    check_error: {
+        type: String,
+        default: null
+    }
 
-postSchema.set('toJSON', { virtuals: true });
-postSchema.set('toObject', { virtuals: true });
+}, {collection: 'facebookPost'});
+
+postSchema.set('toJSON', {virtuals: true});
+postSchema.set('toObject', {virtuals: true});
 
 postSchema.plugin(_mongooseTimestamp2.default);
 module.exports = _mongoose2.default.model('FacebookPost', postSchema);
