@@ -212,6 +212,35 @@ function init() {
         })
 }
 
+app.get('/sendEmail', (req, res) => {
+    var addressTo = req.param('email')
+    var emailMarkup = 'Check it now'
+
+    let mailOptions = {
+        from: {
+            name: 'Jobo',
+            address: 'contact@joboapp.com'
+        },
+        to: addressTo, // list of receivers
+        subject: 'Test Email |' + Date.now(), // Subject line
+        // text: 'Hello world?', // plain text body
+        html: `${emailMarkup}`, // html body
+    }
+
+
+    // send mail with defined transport object
+    mailTransport.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log('Error sent email', addressTo)
+        }
+
+        console.log('Email sent:', addressTo)
+
+
+
+    });
+
+})
 var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
     return new Promise((resolve, reject) => {
         // setup email data with unicode symbols
@@ -258,7 +287,7 @@ app.get('/', function (req, res, next) {
 
 app.get('/l/:queryString', function (req, res, next) {
     const queryString = req.params.queryString;
-    if (!queryString)  res.redirect(CONFIG.WEBURL+'/jobseeker/dash');
+    if (!queryString) res.redirect(CONFIG.WEBURL + '/jobseeker/dash');
 
     var dataStr = queryString.split(":")
 
@@ -295,7 +324,6 @@ app.get('/l/:queryString', function (req, res, next) {
             res.status(500).json(err);
         });
 });
-
 
 app.get('/searchFacebook', function (req, res) {
     let {type, q} = req.query
@@ -369,7 +397,7 @@ function fetchFBPost() {
                     // post.checks.push(check);
                     // console.log(check);
                     return FacebookPost.findByIdAndUpdate(post._id, {
-                        $push: {checks: check},
+                        $set: check,
                         still_alive: still_alive
                     }, {new: true});
                     // return post;
@@ -422,7 +450,7 @@ function addTrackingEmail(notiId, url, t = 'o', p = 'l', i = '') {
                 platform,
                 type
             })
-        console.log()
+        console.log();
         if (t == 'o') {
             trackUrl = CONFIG.AnaURL + '/l/' + notiId + p + t + i
         } else {
