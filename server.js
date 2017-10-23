@@ -1230,7 +1230,7 @@ function PublishFacebook(to, content, poster, postId, type) {
             var url = to + "/feed?access_token=" + accessToken
             var params = {"message": content.text}
 
-            if (type == 'image') {
+            if (content.type == 'image') {
                 url = to + "/photos?access_token=" + accessToken
                 params = {
                     "url": content.image,
