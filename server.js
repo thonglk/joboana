@@ -550,20 +550,22 @@ String.prototype.getLink = function () {
 }
 
 function trackingTemplate(html, postId) {
-    const atags = html.match(/(<a\s+(?:[^>]*?\s+)?href=')([^']*)(')|(<a\s+(?:[^>]*?\s+)?href=")([^"]*)(")/ig);
-    let i = 0;
-    console.log(html);
-    if (!atags) return html;
+    if(html.length > 0){
+        const atags = html.match(/(<a\s+(?:[^>]*?\s+)?href=')([^']*)(')|(<a\s+(?:[^>]*?\s+)?href=")([^"]*)(")/ig);
+        let i = 0;
+        console.log(html);
+        if (!atags) return html;
 
-    atags.forEach(atag => {
-        const link = atag.getLink();
-        console.log(link);
-        const tracking = addTrackingEmail(postId, link, 'c', `l`, i++);
-        // const tracking = shortenURL(link, `${postId}cl${i++}`);
-        html = html.replace(link, tracking);
-        // return Promise.resolve(link);
-    });
-    return html;
+        atags.forEach(atag => {
+            const link = atag.getLink();
+            console.log(link);
+            const tracking = addTrackingEmail(postId, link, 'c', `l`, i++);
+            // const tracking = shortenURL(link, `${postId}cl${i++}`);
+            html = html.replace(link, tracking);
+            // return Promise.resolve(link);
+        });
+        return html;
+    }
 }
 
 // function sendEmailTemplate(email, mail, notiId) {
