@@ -87,20 +87,20 @@ MongoClient.connect(uri, function (err, db) {
 // TODO(DEVELOPER): Configure your email transport.
 
 //
-// var mailTransport = nodemailer.createTransport(ses({
-//     accessKeyId: 'AKIAJHPP64MDOXMXAZRQ',
-//     secretAccessKey: 'xNzQL2bFyfCg6ZP2XsG8W6em3xiweNQArWUnnADW',
-//     region: 'us-east-1'
-// }));
-let mailTransport = nodemailer.createTransport({
-    host: 'smtp.zoho.com',
-    port: 465,
-    secure: true, // true for 465, false for other ports
-    auth: {
-        user: 'contact@joboapp.com', // generated ethereal user
-        pass: 'Ya11VV2MQtsE'  // generated ethereal password
-    }
-});
+var mailTransport = nodemailer.createTransport(ses({
+    accessKeyId: 'AKIAJHPP64MDOXMXAZRQ',
+    secretAccessKey: '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',
+    region: 'us-east-1'
+}));
+// let mailTransport = nodemailer.createTransport({
+//     host: 'smtp.zoho.com',
+//     port: 465,
+//     secure: true, // true for 465, false for other ports
+//     auth: {
+//         user: 'contact@joboapp.com', // generated ethereal user
+//         pass: 'Ya11VV2MQtsE'  // generated ethereal password
+//     }
+// });
 
 app.use(express.static(__dirname + '/static'));
 app.use(cors());
