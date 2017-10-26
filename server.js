@@ -259,7 +259,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         let mailOptions = {
             from: {
                 name: mail.name || 'Jobo | Tìm việc nhanh',
-                address: mail.address || CONFIG.email
+                address: mail.from || CONFIG.email
             },
             bcc: mail.bcc,
             to: addressTo, // list of receivers
