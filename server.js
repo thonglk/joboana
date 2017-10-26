@@ -97,8 +97,8 @@ let mailTransport = nodemailer.createTransport({
     port: 465,
     secure: true, // true for 465, false for other ports
     auth: {
-        user: 'thonglk@joboapp.com', // generated ethereal user
-        pass: 'AgHWzSJy19U4'  // generated ethereal password
+        user: 'contact@joboapp.com', // generated ethereal user
+        pass: 'Ya11VV2MQtsE'  // generated ethereal password
     }
 });
 
@@ -195,7 +195,7 @@ function init() {
     configRef.on('value', function (snap) {
         CONFIG = snap.val()
         facebookAccount = CONFIG.facebookAccount
-        var defaut = facebookAccount.thong.access_token
+        var defaut = facebookAccount.mailinh.access_token
         graph.setAccessToken(defaut);
 
     })
@@ -223,12 +223,13 @@ function init() {
 
 app.get('/sendEmail', (req, res) => {
     var addressTo = req.param('email')
+    var from = req.param('from')
     var emailMarkup = 'Check it now'
 
     let mailOptions = {
         from: {
             name: 'Jobo',
-            address: 'contact@joboapp.com'
+            address: from || 'contact@joboapp.com'
         },
         to: addressTo, // list of receivers
         subject: 'Test Email |' + Date.now(), // Subject line
@@ -249,6 +250,7 @@ app.get('/sendEmail', (req, res) => {
     });
 
 })
+
 var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
     return new Promise((resolve, reject) => {
         // setup email data with unicode symbols
