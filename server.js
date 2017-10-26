@@ -224,7 +224,7 @@ function init() {
 app.get('/sendEmail', (req, res) => {
     var addressTo = req.param('email')
     var from = req.param('from')
-    var emailMarkup = `<div><img src="${addTrackingEmail(keygen(),'/jobo.png', 'o', 'l')}"/>Check it now</div>`
+    var emailMarkup = `<div><img src="${addTrackingEmail(keygen(),'/jobo.png')}"/>Check it now</div>`
 
     let mailOptions = {
         from: {
