@@ -1002,7 +1002,7 @@ function sendEmailTemplate(email, mail, notiId) {
 
         var header = `<div><img src="${addTrackingEmail(notiId, '/jobo.png', 'o', 'l')}"/>`;
 
-        var footer = '</div>'
+        var footer = '</div>';
 
 
         var image = ' <!--[if mso | IE]>\n' +
@@ -1039,16 +1039,6 @@ function sendEmailTemplate(email, mail, notiId) {
             '    </td></tr></table>\n' +
             '    <![endif]-->';
 
-        var text = '\n' +
-            '    <!--[if mso | IE]>\n' +
-            '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
-            '        <tr>\n' +
-            '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
-            '    <![endif]-->\n' +
-            '    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:left;">' + mail.description + '</div>\n' +
-            '    <!--[if mso | IE]>\n' +
-            '    </td></tr></table>\n' +
-            '    <![endif]-->';
 
         var button = '  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
             '        <tr>\n' +
@@ -1108,50 +1098,6 @@ function sendEmailTemplate(email, mail, notiId) {
             '    </td></tr></table>\n' +
             '    <![endif]-->'
 
-        var card_body = '<td style="vertical-align:top;width:300px;">\n' +
-            '                    <![endif]-->\n' +
-            '                    <div class="mj-column-per-50 outlook-group-fix" style="vertical-align:top;display:inline-block;direction:ltr;font-size:13px;text-align:left;width:100%;">\n' +
-            '                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">\n' +
-            '                            <tbody>\n' +
-            '                            <tr>\n' +
-            '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
-            '                                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-spacing:0px;" align="center" border="0">\n' +
-            '                                        <tbody>\n' +
-            '                                        <tr>\n' +
-            '                                            <td style="width:165px;"><img alt="" title="" height="auto" src="' + card.image + '" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="165"></td>\n' +
-            '                                        </tr>\n' +
-            '                                        </tbody>\n' +
-            '                                    </table>\n' +
-            '                                </td>\n' +
-            '                            </tr>\n' +
-            '                            <tr>\n' +
-            '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
-            '                                    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:16px;font-weight:bold;line-height:22px;text-align:center;">' + card.title + '</div>\n' +
-            '                                </td>\n' +
-            '                            </tr>\n' +
-            '                            <tr>\n' +
-            '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
-            '                                    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:center;">' + card.body + '</div>\n' +
-            '                                </td>\n' +
-            '                            </tr>\n' +
-            '                            <tr>\n' +
-            '                                <td style="word-wrap:break-word;font-size:0px;padding:10px 25px;" align="center">\n' +
-            '                                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;" align="center" border="0">\n' +
-            '                                        <tbody>\n' +
-            '                                        <tr>\n' +
-            '                                            <td style="border:none;border-radius:40px;color:#ffffff;cursor:auto;padding:10px 25px;" align="center" valign="middle" bgcolor="#1FBDF1">\n' +
-            '<a href="' + card.linktoaction + '"><p style="text-decoration:none;background:#1FBDF1;color:#ffffff;font-family:' + font + ';font-size:12px;font-weight:normal;line-height:120%;text-transform:none;margin:0px;">' + card.calltoaction + '</p> </a>\n' +
-            '                                            </td>\n' +
-            '                                        </tr>\n' +
-            '                                        </tbody>\n' +
-            '                                    </table>\n' +
-            '                                </td>\n' +
-            '                            </tr>\n' +
-            '                            </tbody>\n' +
-            '                        </table>\n' +
-            '                    </div>\n' +
-            '                    <!--[if mso | IE]>\n' +
-            '                    </td>';
         var outtro = '<!--[if mso | IE]>\n' +
             '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
             '        <tr>\n' +
@@ -1336,7 +1282,10 @@ function startSend(userData, mail, channel, notiId) {
                         notiId,
                         letter: true
                     }))
-                    .catch(err => resolve({notiId, letter: false}));
+                    .catch(err => {
+                        console.log('err',err)
+                        resolve({notiId, letter: false})
+                    });
             } else resolve({notiId, letter: false});
         });
 
