@@ -224,7 +224,7 @@ function init() {
 app.get('/sendEmail', (req, res) => {
     var addressTo = req.param('email')
     var from = req.param('from')
-    var emailMarkup = 'Check it now'
+    var emailMarkup = `<div><img src="${addTrackingEmail(keygen(),'/jobo.png', 'o', 'l')}"/>Check it now</div>`
 
     let mailOptions = {
         from: {
@@ -451,7 +451,14 @@ function addTrackingEmail(notiId, url, t = 'o', p = 'l', i = '') {
         var trackUrl = ''
         var platform = configP[p]
         var type = configT[t]
-        joboPxl.database().ref('/links/' + notiId + p + t + i)
+        var urlId = ''
+
+        if(i.length >0){
+            urlId = notiId +':'+ p +':'+ t +':'+ i
+        } else {
+            urlId = notiId +':'+ p +':'+ t
+        }
+        joboPxl.database().ref('/links/' + urlId)
             .update({
                 url,
                 linkId: notiId,
@@ -460,9 +467,9 @@ function addTrackingEmail(notiId, url, t = 'o', p = 'l', i = '') {
             })
         console.log();
         if (t == 'o') {
-            trackUrl = CONFIG.AnaURL + '/l/' + notiId + p + t + i
+            trackUrl = CONFIG.AnaURL + '/l/' + urlId
         } else {
-            trackUrl = CONFIG.WEBURL + '/l/' + notiId + p + t + i
+            trackUrl = CONFIG.WEBURL + '/l/' + urlId
         }
         console.log('url', trackUrl)
         return trackUrl
