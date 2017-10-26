@@ -259,7 +259,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         let mailOptions = {
             from: {
                 name: mail.name || 'Jobo | Tìm việc nhanh',
-                address: mail.address || 'contact@joboapp.com'
+                address: mail.address || CONFIG.email
             },
             bcc: mail.bcc,
             to: addressTo, // list of receivers
@@ -1391,7 +1391,7 @@ function getPaginatedItems(items, page) {
 
 function sendMessenger(messengerId, noti, key) {
     return new Promise((resolve, reject) => {
-        var url = 'https://jobobot.herokuapp.com/noti';
+        var url = 'https://jobo-chat.herokuapp.com/noti';
 
         var param = {
             messages: {
@@ -1401,9 +1401,10 @@ function sendMessenger(messengerId, noti, key) {
                 image: noti.image || ''
             },
             recipientIds: messengerId
-        }
+        };
+
         axios.post(url, param)
-            .then(function (response) {
+            .then(function () {
                 console.log('messenger sent:' + key)
                 notificationCol.updateOne({notiId: key}, {$set: {messenger_sent: Date.now()}})
                     .then(() => resolve(key))
