@@ -224,7 +224,7 @@ function init() {
 app.get('/sendEmail', (req, res) => {
     var addressTo = req.param('email')
     var from = req.param('from')
-    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(keygen(),'/jobo.png')}"/>Check it now</div>`
+    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(keygen(), '/jobo.png')}"/>Check it now</div>`
 
     let mailOptions = {
         from: {
@@ -264,8 +264,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
             bcc: mail.bcc,
             to: addressTo, // list of receivers
             subject: mail.title, // Subject line
-            // text: 'Hello world?', // plain text body
-            html: `${emailMarkup}`, // html body
+            html: emailMarkup, // html body
         }
         if (mail.attachments) {
             mailOptions.attachments = [{ // filename and content type is derived from path
@@ -407,7 +406,13 @@ function fetchFBPost() {
 
                     // post.checks.push(check);
                     // console.log(check);
-                    return FacebookPost.findByIdAndUpdate(post._id, {checkAt, reactions,comments,check_error,still_alive}, {new: true});
+                    return FacebookPost.findByIdAndUpdate(post._id, {
+                        checkAt,
+                        reactions,
+                        comments,
+                        check_error,
+                        still_alive
+                    }, {new: true});
                     // return post;
                 }));
             })
@@ -453,10 +458,10 @@ function addTrackingEmail(notiId, url, t = 'o', p = 'l', i = '') {
         var type = configT[t]
         var urlId = ''
 
-        if(i.length >0){
-            urlId = notiId +':'+ p +':'+ t +':'+ i
+        if (i.length > 0) {
+            urlId = notiId + ':' + p + ':' + t + ':' + i
         } else {
-            urlId = notiId +':'+ p +':'+ t
+            urlId = notiId + ':' + p + ':' + t
         }
         joboPxl.database().ref('/links/' + urlId)
             .update({
@@ -1309,15 +1314,15 @@ function sendEmailTemplate(email, mail, notiId) {
             htmlMail = htmlMail + outtro
         }
 
-        htmlMail = htmlMail + footer + `<hr>
-<p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>
-`;
+        htmlMail = htmlMail + footer + `<hr><p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>`;
+        console.log(email, mail, notiId)
 
         sendEmail(email, mail, htmlMail, notiId)
             .then(notiId => resolve(notiId))
             .catch(err => reject(err));
     });
 }
+
 function startSend(userData, mail, channel, notiId) {
     return new Promise((sResolve, sReject) => {
         console.log('startSend', notiId, mail.title);
@@ -1599,7 +1604,7 @@ function PublishFacebook(to, content, poster, postId, type) {
                         console.log(id);
                         var still_alive = true
                         // facebookPostRef.child(postId).update({ id, sent: Date.now() })
-                        FacebookPost.findOneAndUpdate({postId}, {id,still_alive, sent: Date.now()}, {new: true})
+                        FacebookPost.findOneAndUpdate({postId}, {id, still_alive, sent: Date.now()}, {new: true})
                             .then(updatedPost => resolve(updatedPost))
                             .catch(err => reject(err));
                     }
