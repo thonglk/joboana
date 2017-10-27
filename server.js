@@ -228,7 +228,6 @@ app.get('/sendEmailManrill', (req, res) => {
     var {email} = req.query
     var message = {
         "html": "<p>This is a email</p>",
-        "text": "This is a email",
         "subject": "New email test |" + new Date(),
         "from_email": "hello@jobo.asia",
         "from_name": "Jobo",
@@ -326,8 +325,8 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
                 "Reply-To": mail.from
             },
             "important": false,
-            "track_opens": true,
-            "track_clicks": true,
+            "track_opens": null,
+            "track_clicks": null,
             "auto_text": null,
             "auto_html": null,
             "inline_css": null,
@@ -341,7 +340,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         };
 
         mandrill_client.messages.send({"message": message}, function (result) {
-            console.log('Email:',result.status, notiId + ' ' + addressTo)
+            console.log('Email:',result[0].status, notiId + ' ' + addressTo)
 
             notificationCol.updateOne({notiId}, {$set: {letter_sent: Date.now()}})
                 .then(() => resolve(notiId))
@@ -1105,71 +1104,11 @@ function sendEmailTemplate(email, mail, notiId) {
         var footer = '</div>';
 
 
-        var image = ' <!--[if mso | IE]>\n' +
-            '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
-            '        <tr>\n' +
-            '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
-            '    <![endif]-->\n' +
-            '    <div style="margin:0px auto;max-width:600px;">\n' +
-            '        <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:0px;width:100%;" align="center" border="0">\n' +
-            '            <tbody>\n' +
-            '            <tr>\n' +
-            '                <td style="text-align:center;vertical-align:top;direction:ltr;font-size:0px;padding:20px 0px;">\n' +
-            '                    <!--[if mso | IE]>\n' +
-            '                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">\n' +
-            '                        <tr>\n' +
-            '                            <td style="vertical-align:undefined;width:600px;">\n' +
-            '                    <![endif]-->\n' +
-            '                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-spacing:0px;" align="center" border="0">\n' +
-            '                        <tbody>\n' +
-            '                        <tr>\n' +
-            '                            <td style="width:550px;"><img alt="" title="" height="auto" src="' + mail.image + '" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="550"></td>\n' +
-            '                        </tr>\n' +
-            '                        </tbody>\n' +
-            '                    </table>\n' +
-            '                    <!--[if mso | IE]>\n' +
-            '                    </td></tr></table>\n' +
-            '                    <![endif]-->\n' +
-            '                </td>\n' +
-            '            </tr>\n' +
-            '            </tbody>\n' +
-            '        </table>\n' +
-            '    </div>\n' +
-            '    <!--[if mso | IE]>\n' +
-            '    </td></tr></table>\n' +
-            '    <![endif]-->';
+        var image =
+            '   <img alt="" title="" height="auto" src="' + mail.image + '" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="550">';
 
 
-        var button = '  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
-            '        <tr>\n' +
-            '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
-            '    <![endif]-->\n' +
-            '    <div style="margin:0px auto;max-width:600px;">\n' +
-            '        <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:0px;width:100%;" align="center" border="0">\n' +
-            '            <tbody>\n' +
-            '            <tr>\n' +
-            '                <td style="text-align:center;vertical-align:top;direction:ltr;font-size:0px;padding:20px 0px;">\n' +
-            '                    <!--[if mso | IE]>\n' +
-            '                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">\n' +
-            '                        <tr>\n' +
-            '                            <td style="vertical-align:undefined;width:600px;">\n' +
-            '                    <![endif]-->\n' +
-            '                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;" align="justify" border="0">\n' +
-            '                        <tbody>\n' +
-            '                        <tr style="border-collapse:collapse"> <td class="m_-5282972956275044657w580" style="font-family:' + font + ';font-weight:300;border-collapse:collapse" width="580"> <div style="text-align:center"><a href="' + addTrackingEmail(notiId, mail.linktoaction, 'c', 'l') + '" style="background: #1FBDF1;background: -webkit-linear-gradient(to left, #1FBDF1, #39DFA5); background: linear-gradient(to left, #1FBDF1, #39DFA5);color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:60px;text-align:center;text-decoration:none;width:300px" target="_blank"> ' + mail.calltoaction + '</a></div> </td> </tr>\n' +
-            '                        </tbody>\n' +
-            '                    </table>\n' +
-            '                    <!--[if mso | IE]>\n' +
-            '                    </td></tr></table>\n' +
-            '                    <![endif]-->\n' +
-            '                </td>\n' +
-            '            </tr>\n' +
-            '            </tbody>\n' +
-            '        </table>\n' +
-            '    </div>\n' +
-            '    <!--[if mso | IE]>\n' +
-            '    </td></tr></table>\n' +
-            '    <![endif]-->';
+        var button = '<a href="' + addTrackingEmail(notiId, mail.linktoaction, 'c', 'l') + '" style="background: #1FBDF1;background: -webkit-linear-gradient(to left, #1FBDF1, #39DFA5); background: linear-gradient(to left, #1FBDF1, #39DFA5);color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:60px;text-align:center;text-decoration:none;width:300px" target="_blank"> ' + mail.calltoaction + '</a>'
 
         var card_header = '  <!--[if mso | IE]>\n' +
             '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
@@ -1198,80 +1137,19 @@ function sendEmailTemplate(email, mail, notiId) {
             '    </td></tr></table>\n' +
             '    <![endif]-->'
 
-        var outtro = '<!--[if mso | IE]>\n' +
-            '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
-            '        <tr>\n' +
-            '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
-            '    <![endif]-->\n' +
-            '    <div style="margin:0px auto;max-width:600px;">\n' +
-            '        <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:0px;width:100%;" align="center" border="0">\n' +
-            '            <tbody>\n' +
-            '            <tr>\n' +
-            '                <td style="text-align:center;vertical-align:top;direction:ltr;font-size:0px;padding:20px 0px;">\n' +
-            '                    <!--[if mso | IE]>\n' +
-            '                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">\n' +
-            '                        <tr>\n' +
-            '                            <td style="vertical-align:undefined;width:600px;">\n' +
-            '                    <![endif]-->\n' +
-            '                    <p style="font-size:1px;margin:0px auto;border-top:1px solid #d4d4d4;width:100%;"></p>\n' +
-            '                    <!--[if mso | IE]><table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" style="font-size:1px;margin:0px auto;border-top:1px solid #d4d4d4;width:100%;" width="600"><tr><td style="height:0;line-height:0;"> </td></tr></table><![endif]-->\n' +
-            '                    <!--[if mso | IE]>\n' +
-            '                    </td><td style="vertical-align:undefined;width:50px;">\n' +
-            '                    <![endif]-->\n' +
-            '                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-spacing:0px;" align="left" border="0">\n' +
-            '                        <tbody>\n' +
-            '                        <tr>\n' +
-            '                            <td style="width:50px;"><img alt="" title="" height="auto" src="https://jobo.asia/img/logo.png" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="50"></td>\n' +
-            '                        </tr>\n' +
-            '                        </tbody>\n' +
-            '                    </table>\n' +
-            '                    <!--[if mso | IE]>\n' +
-            '                    </td><td style="vertical-align:undefined;width:200px;">\n' +
-            '                    <![endif]-->\n' +
-            '                    <div style="cursor:auto;color:#000000;font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:11px;line-height:22px;text-align:right;"><a href="https://goo.gl/awK5qg" style="color: #000000; text-decoration: none;">We are hiring</a></div>\n' +
-            '                    <!--[if mso | IE]>\n' +
-            '                    </td></tr></table>\n' +
-            '                    <![endif]-->\n' +
-            '                </td>\n' +
-            '            </tr>\n' +
-            '            </tbody>\n' +
-            '        </table>\n' +
-            '    </div>\n' +
-            '    <!--[if mso | IE]>\n' +
-            '    </td></tr></table>\n' +
-            '    <![endif]-->'
+        var outtro = ''
 
 
         var htmlMail = '';
         if (mail.description1) {
-            mail.description = trackingTemplate(mail.description1, notiId)
-            htmlMail = htmlMail + header + '\n' +
-                '    <!--[if mso | IE]>\n' +
-                '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
-                '        <tr>\n' +
-                '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
-                '    <![endif]-->\n' +
-                '    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:left;">' + mail.description + '</div>\n' +
-                '    <!--[if mso | IE]>\n' +
-                '    </td></tr></table>\n' +
-                '    <![endif]-->';
+            htmlMail = htmlMail + header + trackingTemplate(mail.description1, notiId)
         }
         if (mail.image) {
             htmlMail = htmlMail + image
         }
 
         if (mail.description2) {
-            mail.description = trackingTemplate(mail.description2, notiId)
-            htmlMail = htmlMail + '\n' +
-                '    <!--[if mso | IE]>\n' +
-                '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
-                '        <tr>\n' +
-                '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
-                '    <![endif]-->\n' +
-                '    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:left;">' + mail.description + '</div>\n' +
-                '    <!--[if mso | IE]>\n' +
-                '    </td></tr></table>\n' +
-                '    <![endif]-->';
+            htmlMail = htmlMail + trackingTemplate(mail.description2, notiId)
         }
         if (mail.linktoaction) {
             htmlMail = htmlMail + button
@@ -1279,16 +1157,7 @@ function sendEmailTemplate(email, mail, notiId) {
         }
         if (mail.description3) {
             mail.description = trackingTemplate(mail.description3, notiId)
-            htmlMail = htmlMail + '\n' +
-                '    <!--[if mso | IE]>\n' +
-                '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
-                '        <tr>\n' +
-                '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
-                '    <![endif]-->\n' +
-                '    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:left;">' + mail.description + '</div>\n' +
-                '    <!--[if mso | IE]>\n' +
-                '    </td></tr></table>\n' +
-                '    <![endif]-->';
+            htmlMail = htmlMail + trackingTemplate(mail.description3, notiId)
         }
 
         if (mail.data) {
@@ -1344,24 +1213,10 @@ function sendEmailTemplate(email, mail, notiId) {
             htmlMail = htmlMail + card_footer
         }
         if (mail.description4) {
-            mail.description = trackingTemplate(mail.description4, notiId)
-            htmlMail = htmlMail + '\n' +
-                '    <!--[if mso | IE]>\n' +
-                '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
-                '        <tr>\n' +
-                '            <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">\n' +
-                '    <![endif]-->\n' +
-                '    <div style="cursor:auto;color:#000;font-family:' + font + ';font-size:13px;line-height:22px;text-align:left;">' + mail.description + '</div>\n' +
-                '    <!--[if mso | IE]>\n' +
-                '    </td></tr></table>\n' +
-                '    <![endif]-->';
-        }
-        if (mail.outtro) {
-            htmlMail = htmlMail + outtro
+            htmlMail = htmlMail + trackingTemplate(mail.description4, notiId)
         }
 
         htmlMail = htmlMail + footer + `<hr><p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>`;
-
 
         sendEmail(email, mail, htmlMail, notiId)
             .then(notiId => resolve(notiId))
