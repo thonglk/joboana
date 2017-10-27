@@ -1108,7 +1108,7 @@ function sendEmailTemplate(email, mail, notiId) {
             '   <img alt="" title="" height="auto" src="' + mail.image + '" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="550">';
 
 
-        var button = '<a href="' + addTrackingEmail(notiId, mail.linktoaction, 'c', 'l') + '" style="background: #1FBDF1;background: -webkit-linear-gradient(to left, #1FBDF1, #39DFA5); background: linear-gradient(to left, #1FBDF1, #39DFA5);color:#ffffff;display:inline-block;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:60px;text-align:center;text-decoration:none;width:300px" target="_blank"> ' + mail.calltoaction + '</a>'
+        var button = '<a href="' + addTrackingEmail(notiId, mail.linktoaction, 'c', 'l') + '" style="color:#1FBDF1" target="_blank"> ' + mail.calltoaction + '</a>'
 
         var card_header = '  <!--[if mso | IE]>\n' +
             '    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" align="center" style="width:600px;">\n' +
@@ -1142,22 +1142,21 @@ function sendEmailTemplate(email, mail, notiId) {
 
         var htmlMail = '';
         if (mail.description1) {
-            htmlMail = htmlMail + header + trackingTemplate(mail.description1, notiId)
+            htmlMail = htmlMail + header + trackingTemplate(mail.description1, notiId) +'<br>'
         }
         if (mail.image) {
-            htmlMail = htmlMail + image
+            htmlMail = htmlMail + image +'<br>'
         }
 
         if (mail.description2) {
-            htmlMail = htmlMail + trackingTemplate(mail.description2, notiId)
+            htmlMail = htmlMail + trackingTemplate(mail.description2, notiId) +'<br>'
         }
         if (mail.linktoaction) {
-            htmlMail = htmlMail + button
+            htmlMail = htmlMail + button +'<br>'
 
         }
         if (mail.description3) {
-            mail.description = trackingTemplate(mail.description3, notiId)
-            htmlMail = htmlMail + trackingTemplate(mail.description3, notiId)
+            htmlMail = htmlMail + trackingTemplate(mail.description3, notiId) +'<br>'
         }
 
         if (mail.data) {
@@ -1213,7 +1212,7 @@ function sendEmailTemplate(email, mail, notiId) {
             htmlMail = htmlMail + card_footer
         }
         if (mail.description4) {
-            htmlMail = htmlMail + trackingTemplate(mail.description4, notiId)
+            htmlMail = htmlMail + trackingTemplate(mail.description4, notiId) +'<br>'
         }
 
         htmlMail = htmlMail + footer + `<hr><p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>`;
