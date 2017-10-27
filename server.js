@@ -92,6 +92,9 @@ MongoClient.connect(uri, function (err, db) {
 //     secretAccessKey: 'xNzQL2bFyfCg6ZP2XsG8W6em3xiweNQArWUnnADW',
 //     region: 'us-east-1'
 // }));
+var mandrill = require('mandrill-api/mandrill');
+var mandrill_client = new mandrill.Mandrill('o0QnNTrMVDz68x3S55Hb6Q');
+
 let mailTransport = nodemailer.createTransport({
     host: 'smtp.zoho.com',
     port: 465,
@@ -221,6 +224,61 @@ function init() {
         })
 }
 
+app.get('/sendEmailManrill', (req, res) => {
+    var {email} = req.query
+    var message = {
+        "html": "<p>This is a email</p>",
+        "text": "This is a email",
+        "subject": "New email test |" + new Date(),
+        "from_email": "hello@jobo.asia",
+        "from_name": "Jobo",
+        "to": [{
+            "email": email,
+            "name": "Thông",
+            "type": "to"
+        }],
+        "headers": {
+            "Reply-To": "contact@joboapp.com"
+        },
+        "important": false,
+        "track_opens": true,
+        "track_clicks": true,
+        "auto_text": null,
+        "auto_html": null,
+        "inline_css": null,
+        "url_strip_qs": null,
+        "preserve_recipients": null,
+        "view_content_link": null,
+        "bcc_address": "message.bcc_address@example.com",
+        "tracking_domain": null,
+        "signing_domain": null,
+        "return_path_domain": null,
+        "merge": true
+    };
+    var async = false;
+    var ip_pool = "Main Pool";
+    var send_at = new Date();
+
+    mandrill_client.messages.send({"message": message}, function (result) {
+        console.log(result);
+        res.send(result)
+        /*
+        [{
+                "email": "recipient.email@example.com",
+                "status": "sent",
+                "reject_reason": "hard-bounce",
+                "_id": "abc123abc123abc123abc123abc123"
+            }]
+        */
+    }, function (e) {
+        // Mandrill returns the error as an object with name and message keys
+        console.log('A mandrill error occurred: ' + e.name + ' - ' + e.message);
+        res.send(e)
+
+        // A mandrill error occurred: Unknown_Subaccount - No subaccount exists with the id 'customer-123'
+    });
+
+})
 app.get('/sendEmail', (req, res) => {
     var addressTo = req.param('email')
     var from = req.param('from')
@@ -255,39 +313,79 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
     return new Promise((resolve, reject) => {
         // setup email data with unicode symbols
 
-
-        let mailOptions = {
-            from: {
-                name: mail.name || 'Jobo | Tìm việc nhanh',
-                address: mail.from || CONFIG.email
+        var message = {
+            "html": emailMarkup,
+            "subject": mail.title,
+            "from_email": mail.from || CONFIG.email,
+            "from_name": mail.name || 'Jobo | Tìm việc nhanh',
+            "to": [{
+                "email": addressTo,
+                "type": "to"
+            }],
+            "headers": {
+                "Reply-To": mail.from
             },
-            bcc: mail.bcc,
-            to: addressTo, // list of receivers
-            subject: mail.title, // Subject line
-            html: emailMarkup, // html body
-        }
-        if (mail.attachments) {
-            mailOptions.attachments = [{ // filename and content type is derived from path
-                path: 'https://jobo.asia/img/proposal_pricing_included.pdf'
-            }]
-        }
+            "important": false,
+            "track_opens": true,
+            "track_clicks": true,
+            "auto_text": null,
+            "auto_html": null,
+            "inline_css": null,
+            "url_strip_qs": null,
+            "preserve_recipients": null,
+            "view_content_link": null,
+            "tracking_domain": null,
+            "signing_domain": null,
+            "return_path_domain": null,
+            "merge": true
+        };
 
-
-        // send mail with defined transport object
-        mailTransport.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.log('Error sent email', addressTo)
-                reject(error);
-            }
-
-            console.log('Email sent:', notiId + ' ' + addressTo)
+        mandrill_client.messages.send({"message": message}, function (result) {
+            console.log('Email:',result.status, notiId + ' ' + addressTo)
 
             notificationCol.updateOne({notiId}, {$set: {letter_sent: Date.now()}})
                 .then(() => resolve(notiId))
                 .catch(err => reject(err))
+        }, function (e) {
+            // Mandrill returns the error as an object with name and message keys
+            console.log('Error sent email', e)
+            reject(error);
 
-
+            // A mandrill error occurred: Unknown_Subaccount - No subaccount exists with the id 'customer-123'
         });
+
+        // let mailOptions = {
+        //     from: {
+        //         name: mail.name || 'Jobo | Tìm việc nhanh',
+        //         address: mail.from || CONFIG.email
+        //     },
+        //     bcc: mail.bcc,
+        //     to: addressTo, // list of receivers
+        //     subject: mail.title, // Subject line
+        //     html: emailMarkup, // html body
+        // }
+        // if (mail.attachments) {
+        //     mailOptions.attachments = [{ // filename and content type is derived from path
+        //         path: 'https://jobo.asia/img/proposal_pricing_included.pdf'
+        //     }]
+        // }
+        //
+        //
+        // // send mail with defined transport object
+        // mailTransport.sendMail(mailOptions, (error, info) => {
+        //     if (error) {
+        //         console.log('Error sent email', addressTo)
+        //         reject(error);
+        //     }
+        //
+        //     console.log('Email sent:', notiId + ' ' + addressTo)
+        //
+        //     notificationCol.updateOne({notiId}, {$set: {letter_sent: Date.now()}})
+        //         .then(() => resolve(notiId))
+        //         .catch(err => reject(err))
+        //
+        //
+        // });
     });
 }
 app.get('/', function (req, res, next) {
@@ -550,7 +648,7 @@ String.prototype.getLink = function () {
 }
 
 function trackingTemplate(html, postId) {
-    if(html.length > 0){
+    if (html.length > 0) {
         const atags = html.match(/(<a\s+(?:[^>]*?\s+)?href=')([^']*)(')|(<a\s+(?:[^>]*?\s+)?href=")([^"]*)(")/ig);
         let i = 0;
         console.log(html);
@@ -1263,7 +1361,7 @@ function sendEmailTemplate(email, mail, notiId) {
         }
 
         htmlMail = htmlMail + footer + `<hr><p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>`;
-        console.log(email, mail, notiId)
+
 
         sendEmail(email, mail, htmlMail, notiId)
             .then(notiId => resolve(notiId))
@@ -1285,7 +1383,7 @@ function startSend(userData, mail, channel, notiId) {
                         letter: true
                     }))
                     .catch(err => {
-                        console.log('err',err)
+                        console.log('err', err)
                         resolve({notiId, letter: false})
                     });
             } else resolve({notiId, letter: false});
