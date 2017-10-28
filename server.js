@@ -312,79 +312,79 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
     return new Promise((resolve, reject) => {
         // setup email data with unicode symbols
 
-        var message = {
-            "html": emailMarkup,
-            "subject": mail.title,
-            "from_email": mail.from || CONFIG.email,
-            "from_name": mail.name || 'Jobo | Tìm việc nhanh',
-            "to": [{
-                "email": addressTo,
-                "type": "to"
-            }],
-            "headers": {
-                "Reply-To": mail.from
-            },
-            "important": false,
-            "track_opens": null,
-            "track_clicks": null,
-            "auto_text": null,
-            "auto_html": null,
-            "inline_css": null,
-            "url_strip_qs": null,
-            "preserve_recipients": null,
-            "view_content_link": null,
-            "tracking_domain": null,
-            "signing_domain": null,
-            "return_path_domain": null,
-            "merge": true
-        };
-
-        mandrill_client.messages.send({"message": message}, function (result) {
-            console.log('Email:',result[0].status, notiId + ' ' + addressTo)
-
-            notificationCol.updateOne({notiId}, {$set: {letter_sent: Date.now()}})
-                .then(() => resolve(notiId))
-                .catch(err => reject(err))
-        }, function (e) {
-            // Mandrill returns the error as an object with name and message keys
-            console.log('Error sent email', e)
-            reject(error);
-
-            // A mandrill error occurred: Unknown_Subaccount - No subaccount exists with the id 'customer-123'
-        });
-
-        // let mailOptions = {
-        //     from: {
-        //         name: mail.name || 'Jobo | Tìm việc nhanh',
-        //         address: mail.from || CONFIG.email
+        // var message = {
+        //     "html": emailMarkup,
+        //     "subject": mail.title,
+        //     "from_email": mail.from || CONFIG.email,
+        //     "from_name": mail.name || 'Jobo | Tìm việc nhanh',
+        //     "to": [{
+        //         "email": addressTo,
+        //         "type": "to"
+        //     }],
+        //     "headers": {
+        //         "Reply-To": mail.from
         //     },
-        //     bcc: mail.bcc,
-        //     to: addressTo, // list of receivers
-        //     subject: mail.title, // Subject line
-        //     html: emailMarkup, // html body
-        // }
-        // if (mail.attachments) {
-        //     mailOptions.attachments = [{ // filename and content type is derived from path
-        //         path: 'https://jobo.asia/img/proposal_pricing_included.pdf'
-        //     }]
-        // }
+        //     "important": false,
+        //     "track_opens": null,
+        //     "track_clicks": null,
+        //     "auto_text": null,
+        //     "auto_html": null,
+        //     "inline_css": null,
+        //     "url_strip_qs": null,
+        //     "preserve_recipients": null,
+        //     "view_content_link": null,
+        //     "tracking_domain": null,
+        //     "signing_domain": null,
+        //     "return_path_domain": null,
+        //     "merge": true
+        // };
         //
-        //
-        // // send mail with defined transport object
-        // mailTransport.sendMail(mailOptions, (error, info) => {
-        //     if (error) {
-        //         console.log('Error sent email', addressTo)
-        //         reject(error);
-        //     }
-        //
-        //     console.log('Email sent:', notiId + ' ' + addressTo)
+        // mandrill_client.messages.send({"message": message}, function (result) {
+        //     console.log('Email:', result[0].status, notiId + ' ' + addressTo)
         //
         //     notificationCol.updateOne({notiId}, {$set: {letter_sent: Date.now()}})
         //         .then(() => resolve(notiId))
         //         .catch(err => reject(err))
+        // }, function (e) {
+        //     // Mandrill returns the error as an object with name and message keys
+        //     console.log('Error sent email', e)
+        //     reject(error);
         //
-        //
+        //     // A mandrill error occurred: Unknown_Subaccount - No subaccount exists with the id 'customer-123'
         // });
+
+        let mailOptions = {
+            from: {
+                name: mail.name || 'Jobo | Tìm việc nhanh',
+                address: mail.from || CONFIG.email
+            },
+            bcc: mail.bcc,
+            to: addressTo, // list of receivers
+            subject: mail.title, // Subject line
+            html: emailMarkup, // html body
+        }
+        if (mail.attachments) {
+            mailOptions.attachments = [{ // filename and content type is derived from path
+                path: 'https://jobo.asia/img/proposal_pricing_included.pdf'
+            }]
+        }
+
+
+        // send mail with defined transport object
+        mailTransport.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log('Error sent email', addressTo)
+                reject(error);
+            }
+
+            console.log('Email sent:', notiId + ' ' + addressTo)
+
+            notificationCol.updateOne({notiId}, {$set: {letter_sent: Date.now()}})
+                .then(() => resolve(notiId))
+                .catch(err => reject(err))
+
+
+        });
     });
 }
 app.get('/', function (req, res, next) {
@@ -442,8 +442,7 @@ app.get('/searchFacebook', function (req, res) {
     });
 })
 app.get('/viewFBpost', function (req, res) {
-    const {access_token} = req.query;
-    if (access_token) graph.setAccessToken(access_token);
+
     fetchFBPost().then(function (result) {
         res.status(200).json(result);
     }).catch(function (err) {
@@ -453,64 +452,10 @@ app.get('/viewFBpost', function (req, res) {
 
 function fetchFBPost() {
     return new Promise((resolve, reject) => {
-        FacebookPost.find({still_alive: true})
+        FacebookPost.find({id: {$ne: null}})
             .then(posts => {
                 return Promise.all(posts.map(post => {
                     return viewFBpost(post._doc);
-                }));
-            })
-            .then(posts => {
-                console.log('obj');
-                var still_alive = true
-                return Promise.all(posts.map(post => {
-                    const checkAt = Date.now()
-
-                    let reactions = {
-                        haha: 0,
-                        like: 0,
-                        love: 0,
-                        wow: 0,
-                        sad: 0,
-                        angry: 0
-                    };
-                    let comments = null
-                    let check_error = null;
-
-                    if (post.err) {
-                        still_alive = false
-                        check_error = post.err;
-                        console.log('post.err', check_error)
-
-                    } else if (post.result) {
-                        if (post.result.reactions) {
-                            reactions = {
-                                haha: post.result.reactions.data.filter(haha => haha.type === 'HAHA').length,
-                                like: post.result.reactions.data.filter(like => like.type === 'LIKE').length,
-                                love: post.result.reactions.data.filter(love => love.type === 'LOVE').length,
-                                wow: post.result.reactions.data.filter(wow => wow.type === 'WOW').length,
-                                sad: post.result.reactions.data.filter(sad => sad.type === 'SAD').length,
-                                angry: post.result.reactions.data.filter(angry => angry.type === 'ANGRY').length
-                            }
-                        }
-                        if (post.result.comments) {
-                            comments = post.result.comments.data;
-                            console.log(post.id)
-
-                        }
-
-                    }
-
-
-                    // post.checks.push(check);
-                    // console.log(check);
-                    return FacebookPost.findByIdAndUpdate(post._id, {
-                        checkAt,
-                        reactions,
-                        comments,
-                        check_error,
-                        still_alive
-                    }, {new: true});
-                    // return post;
                 }));
             })
             .then(posts => {
@@ -526,11 +471,57 @@ function fetchFBPost() {
 function viewFBpost(post) {
     return new Promise(function (resolve, reject) {
         graph.get(post.id + "/?fields=comments,reactions", function (err, result) {
+            console.log('obj');
+            const checkAt = Date.now()
+
+            let reactions = {
+                haha: 0,
+                like: 0,
+                love: 0,
+                wow: 0,
+                sad: 0,
+                angry: 0
+            };
+            let comments = null
+            let check_error = null;
+            let still_alive = true
+
+
+            // post.checks.push(check);
+            // console.log(check);
+
             if (err) {
-                resolve(Object.assign({}, post, {err}));
+                still_alive = false
+                check_error = err;
+                console.log('post.err', check_error)
             } else {
-                resolve(Object.assign({}, post, {result}));
+                if (result.reactions) {
+                    reactions = {
+                        haha: result.reactions.data.filter(haha => haha.type === 'HAHA').length,
+                        like: result.reactions.data.filter(like => like.type === 'LIKE').length,
+                        love: result.reactions.data.filter(love => love.type === 'LOVE').length,
+                        wow: result.reactions.data.filter(wow => wow.type === 'WOW').length,
+                        sad: result.reactions.data.filter(sad => sad.type === 'SAD').length,
+                        angry: result.reactions.data.filter(angry => angry.type === 'ANGRY').length
+                    }
+                }
+                if (result.comments) {
+                    comments = result.comments.data;
+                    console.log(post.id)
+
+                }
             }
+            var update = {
+                checkAt,
+                reactions,
+                comments,
+                check_error,
+                still_alive
+            }
+            console.log(post.id,update)
+            return FacebookPost.findByIdAndUpdate(post._id, update);
+
+
         })
     })
 
@@ -1142,21 +1133,21 @@ function sendEmailTemplate(email, mail, notiId) {
 
         var htmlMail = '';
         if (mail.description1) {
-            htmlMail = htmlMail + header + trackingTemplate(mail.description1, notiId) +'<br>'
+            htmlMail = htmlMail + header + trackingTemplate(mail.description1, notiId) + '<br>'
         }
         if (mail.image) {
-            htmlMail = htmlMail + image +'<br>'
+            htmlMail = htmlMail + image + '<br>'
         }
 
         if (mail.description2) {
-            htmlMail = htmlMail + trackingTemplate(mail.description2, notiId) +'<br>'
+            htmlMail = htmlMail + trackingTemplate(mail.description2, notiId) + '<br>'
         }
         if (mail.linktoaction) {
-            htmlMail = htmlMail + button +'<br>'
+            htmlMail = htmlMail + button + '<br>'
 
         }
         if (mail.description3) {
-            htmlMail = htmlMail + trackingTemplate(mail.description3, notiId) +'<br>'
+            htmlMail = htmlMail + trackingTemplate(mail.description3, notiId) + '<br>'
         }
 
         if (mail.data) {
@@ -1212,7 +1203,7 @@ function sendEmailTemplate(email, mail, notiId) {
             htmlMail = htmlMail + card_footer
         }
         if (mail.description4) {
-            htmlMail = htmlMail + trackingTemplate(mail.description4, notiId) +'<br>'
+            htmlMail = htmlMail + trackingTemplate(mail.description4, notiId) + '<br>'
         }
 
         htmlMail = htmlMail + footer + `<hr><p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>`;
@@ -1366,53 +1357,6 @@ function sendNotificationToGivenUser(registrationToken, noti, type, key) {
             });
     });
 }
-
-app.get('/getallPost', (req, res) => {
-    fetchFBPost().then(function (result) {
-        return FacebookPost.find();
-    })
-        .then(posts => {
-            res.status(200).json(posts);
-        })
-        .catch(function (err) {
-            res.status(500).send(err);
-        });
-});
-
-app.get('/getfbPost', function (req, res) {
-    let {p: page, poster, to, jobId, id, still_alive, schedule} = req.query
-    var query = {}
-    if (poster) {
-        query.poster = poster
-    }
-    if (to) {
-        query.to = to
-    }
-    if (jobId) {
-        query.jobId = jobId
-    }
-    if (id) {
-        query.id = {$ne: null}
-    }
-    if (schedule) {
-        query.time = {$gt: Date.now()}
-    }
-    if (still_alive) {
-        query.id = {$ne: null};
-        query.still_alive = true
-
-    }
-
-    FacebookPost.find(query)
-        .then(posts => {
-
-            var sorted = _.sortBy(posts, function (card) {
-                return -card.time
-            });
-            res.status(200).json(getPaginatedItems(sorted, page))
-        })
-        .catch(err => res.status(500).json(err));
-});
 
 app.delete('/removePost', (req, res, next) => {
     let {p: page, poster, to, jobId, id, still_alive, schedule} = req.query

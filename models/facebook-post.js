@@ -58,7 +58,10 @@ var postSchema = new _mongoose.Schema({
     },
     checks: [],
     to: String,
-    still_alive: Boolean,
+    still_alive: {
+        type: Boolean,
+        default: true
+    },
     checkAt: {
         type: Date,
         default: null
