@@ -441,7 +441,7 @@ app.get('/searchFacebook', function (req, res) {
         res.send(result)
     });
 })
-app.get('/viewFBpost', function (req, res) {
+app.get('/getallpost', function (req, res) {
 
     fetchFBPost().then(function (result) {
         res.status(200).json(result);
