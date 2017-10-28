@@ -519,8 +519,9 @@ function viewFBpost(post) {
                 still_alive
             }
             console.log(post.id,update)
-            return FacebookPost.findByIdAndUpdate(post._id, update);
-
+            FacebookPost.findOneAndUpdate({postId:post.postId}, update)
+                .then(()=> resolve({update}))
+                .catch(err=> reject({err:err}))
 
         })
     })
