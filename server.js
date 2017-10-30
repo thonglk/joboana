@@ -92,10 +92,16 @@ MongoClient.connect(uri, function (err, db) {
 //     secretAccessKey: 'xNzQL2bFyfCg6ZP2XsG8W6em3xiweNQArWUnnADW',
 //     region: 'us-east-1'
 // }));
+//
+var mailTransport = nodemailer.createTransport(ses({
+    accessKeyId: 'AKIAJB7IJS2GP6NGLFSQ',
+    secretAccessKey: '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',
+    region: 'us-west-2'
+}));
 var mandrill = require('mandrill-api/mandrill');
 var mandrill_client = new mandrill.Mandrill('o0QnNTrMVDz68x3S55Hb6Q');
 
-let mailTransport = nodemailer.createTransport({
+let mailTransport_sale = nodemailer.createTransport({
     host: 'smtp.zoho.com',
     port: 465,
     secure: true, // true for 465, false for other ports
@@ -277,7 +283,7 @@ app.get('/sendEmailManrill', (req, res) => {
     });
 
 })
-app.get('/sendEmail', (req, res) => {
+app.get('/sendEmailSES', (req, res) => {
     var addressTo = req.param('email')
     var from = req.param('from')
     var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(keygen(), '/jobo.png')}"/>Check it now</div>`
@@ -296,12 +302,8 @@ app.get('/sendEmail', (req, res) => {
 
     // send mail with defined transport object
     mailTransport.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            console.log('Error sent email', addressTo)
-        }
-
-        console.log('Email sent:', addressTo)
-
+        if (error) res.status(500).json(error)
+        res.send('Email sent:' + addressTo)
 
     });
 
@@ -367,10 +369,13 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
                 path: 'https://jobo.asia/img/proposal_pricing_included.pdf'
             }]
         }
+        var transport;
+        if (mail.from == CONFIG.email) transport = mailTransport
+        else transport = mailTransport_sale
 
 
         // send mail with defined transport object
-        mailTransport.sendMail(mailOptions, (error, info) => {
+        transport.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.log('Error sent email', addressTo)
                 reject(error);
@@ -517,10 +522,10 @@ function viewFBpost(post) {
                 check_error,
                 still_alive
             }
-            console.log(post.id,update)
-            FacebookPost.findOneAndUpdate({postId:post.postId}, update)
-                .then(()=> resolve({update}))
-                .catch(err=> reject({err:err}))
+            console.log(post.id, update)
+            FacebookPost.findOneAndUpdate({postId: post.postId}, update)
+                .then(() => resolve({update}))
+                .catch(err => reject({err: err}))
 
         })
     })
