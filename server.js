@@ -370,8 +370,8 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
             }]
         }
         var transport;
-        if (mail.from == CONFIG.email) transport = mailTransport
-        else transport = mailTransport_sale
+        if (mail.from == CONFIG.email) transport = mailTransport_sale;
+        else transport = mailTransport_sale;
 
 
         // send mail with defined transport object
