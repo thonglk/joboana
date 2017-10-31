@@ -125,14 +125,13 @@ let mailTransport = nodemailer.createTransport(sgTransport(options));
 //         pass: 'At0JsP1N4Ldkm01zmt1Vonfu1tbeZv3WU6BdpIijc/YN'  // generated ethereal password
 //     }
 // });
-mailTransport.verify(function(error, success) {
+mailTransport.verify(function (error, success) {
     if (error) {
         console.log(error);
     } else {
         console.log('Server is ready to take our messages');
     }
 });
-
 
 
 app.use(express.static(__dirname + '/static'));
@@ -331,6 +330,45 @@ app.get('/sendEmailSES', (req, res) => {
     });
 
 })
+app.get('/sendEmailZoho', (req, res) => {
+    var addressTo = req.param('email');
+    var from = req.param('from')
+    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(keygen(), '/jobo.png')}"/>Check it now</div>`
+
+    let mailOptions = {
+        from: {
+            name: 'Jobo | Tìm việc nhanh',
+            address: from || CONFIG.email
+        },
+        to: addressTo, // list of receivers
+        subject: 'Test Email Zoho |' + Date.now(), // Subject line
+        html: emailMarkup, // html body
+    }
+
+    var mailSplit = from.split('@')
+    var idEmail = mailSplit[0]
+    console.log('idEmail', idEmail)
+    let mailTransport_sale = nodemailer.createTransport({
+        host: 'smtp.zoho.com',
+        port: 465,
+        secure: true, // true for 465, false for other ports
+        auth: {
+            user: CONFIG.zoho_email[idEmail].email, // generated ethereal user
+            pass: CONFIG.zoho_email[idEmail].password  // generated ethereal password
+        }
+    });
+
+    // send mail with defined transport object
+    mailTransport_sale.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log('Error sent email', addressTo)
+            res.status(500).json(error);
+        }
+        res.json('Email sent:' + ' ' + addressTo);
+
+    });
+
+})
 
 var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
     return new Promise((resolve, reject) => {
@@ -394,7 +432,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         }
         var mailSplit = mail.from.split('@')
         var idEmail = mailSplit[0]
-        console.log('idEmail',idEmail)
+        console.log('idEmail', idEmail)
         let mailTransport_sale = nodemailer.createTransport({
             host: 'smtp.zoho.com',
             port: 465,
