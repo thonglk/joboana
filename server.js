@@ -93,13 +93,46 @@ MongoClient.connect(uri, function (err, db) {
 //     region: 'us-east-1'
 // }));
 //
-var mailTransport = nodemailer.createTransport(ses({
-    accessKeyId: 'AKIAJB7IJS2GP6NGLFSQ',
-    secretAccessKey: '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',
-    region: 'us-west-2'
-}));
+// var mailTransport = nodemailer.createTransport(ses({
+//     accessKeyId: 'AKIAJB7IJS2GP6NGLFSQ',
+//     secretAccessKey: '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',
+//     region: 'us-west-2'
+// }));
+
+// var mailTransport = nodemailer.createTransport(ses({
+//     accessKeyId: 'AKIAIPEQRRW6Z3LYMMIA',
+//     secretAccessKey: 'At0JsP1N4Ldkm01zmt1Vonfu1tbeZv3WU6BdpIijc/YN',
+//     region: 'us-west-2'
+// }));
+
 var mandrill = require('mandrill-api/mandrill');
 var mandrill_client = new mandrill.Mandrill('o0QnNTrMVDz68x3S55Hb6Q');
+var sgTransport = require('nodemailer-sendgrid-transport');
+
+var options = {
+    auth: {
+        api_user: 'joboapi',
+        api_key: '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'
+    }
+}
+let mailTransport = nodemailer.createTransport(sgTransport(options));
+
+// let mailTransport = nodemailer.createTransport({
+//     host: 'email-smtp.us-west-2.amazonaws.com',
+//     port: 465,
+//     secure: true, // true for 465, false for other ports
+//     auth: {
+//         user: 'AKIAIPEQRRW6Z3LYMMIA', // generated ethereal user
+//         pass: 'At0JsP1N4Ldkm01zmt1Vonfu1tbeZv3WU6BdpIijc/YN'  // generated ethereal password
+//     }
+// });
+mailTransport.verify(function(error, success) {
+    if (error) {
+        console.log(error);
+    } else {
+        console.log('Server is ready to take our messages');
+    }
+});
 
 let mailTransport_sale = nodemailer.createTransport({
     host: 'smtp.zoho.com',
@@ -200,12 +233,11 @@ function init() {
 
     groupRef.on('value', function (snap) {
         groupData = snap.val()
-    })
+    });
     configRef.on('value', function (snap) {
         CONFIG = snap.val()
-        facebookAccount = CONFIG.facebookAccount
+        facebookAccount = CONFIG.facebookAccount;
         graph.setAccessToken(CONFIG.default_accessToken);
-
     })
 
 
@@ -284,7 +316,7 @@ app.get('/sendEmailManrill', (req, res) => {
 
 })
 app.get('/sendEmailSES', (req, res) => {
-    var addressTo = req.param('email')
+    var addressTo = req.param('email');
     var from = req.param('from')
     var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(keygen(), '/jobo.png')}"/>Check it now</div>`
 
