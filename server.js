@@ -1464,7 +1464,7 @@ function addShortLinkFBPost(postId, text) {
     return text;
 }
 
-function PublishFacebook(to, content, poster, postId, type) {
+function PublishFacebook(to, content, poster, postId) {
     return new Promise((resolve, reject) => {
         a++
         console.log('scheduleJob_PublishFacebook_run', to, poster, postId)

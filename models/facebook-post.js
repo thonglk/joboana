@@ -41,6 +41,10 @@ var postSchema = new _mongoose.Schema({
         text: {
             type: String,
             default: null
+        },
+        type: {
+            type: String,
+            default: null
         }
     },
     sent: {
