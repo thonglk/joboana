@@ -394,6 +394,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         }
         var mailSplit = mail.from.split('@')
         var idEmail = mailSplit[0]
+        console.log('idEmail',idEmail)
         let mailTransport_sale = nodemailer.createTransport({
             host: 'smtp.zoho.com',
             port: 465,
