@@ -92,7 +92,6 @@ MongoClient.connect(uri, function (err, db) {
 //     secretAccessKey: 'xNzQL2bFyfCg6ZP2XsG8W6em3xiweNQArWUnnADW',
 //     region: 'us-east-1'
 // }));
-//
 // var mailTransport = nodemailer.createTransport(ses({
 //     accessKeyId: 'AKIAJB7IJS2GP6NGLFSQ',
 //     secretAccessKey: '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',
@@ -134,15 +133,7 @@ mailTransport.verify(function(error, success) {
     }
 });
 
-let mailTransport_sale = nodemailer.createTransport({
-    host: 'smtp.zoho.com',
-    port: 465,
-    secure: true, // true for 465, false for other ports
-    auth: {
-        user: 'contact@joboapp.com', // generated ethereal user
-        pass: 'Ya11VV2MQtsE'  // generated ethereal password
-    }
-});
+
 
 app.use(express.static(__dirname + '/static'));
 app.use(cors());
@@ -401,13 +392,20 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
                 path: 'https://jobo.asia/img/proposal_pricing_included.pdf'
             }]
         }
-        var transport;
-        if (mail.from == CONFIG.email) transport = mailTransport_sale;
-        else transport = mailTransport_sale;
-
+        var mailSplit = mail.from.split('@')
+        var idEmail = mailSplit[0]
+        let mailTransport_sale = nodemailer.createTransport({
+            host: 'smtp.zoho.com',
+            port: 465,
+            secure: true, // true for 465, false for other ports
+            auth: {
+                user: CONFIG.zoho_email[idEmail].email, // generated ethereal user
+                pass: CONFIG.zoho_email[idEmail].password  // generated ethereal password
+            }
+        });
 
         // send mail with defined transport object
-        transport.sendMail(mailOptions, (error, info) => {
+        mailTransport_sale.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.log('Error sent email', addressTo)
                 reject(error);
