@@ -352,7 +352,6 @@ app.get('/sendEmailZoho', (req, res) => {
         subject: 'Test Email Zoho |' + Date.now(), // Subject line
         html: emailMarkup, // html body
         // text: 'Hello world?', // plain text body
-
     }
 
     var mailSplit = from.split('@')
