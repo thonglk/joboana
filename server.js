@@ -1249,7 +1249,7 @@ function sendEmailTemplate(email, mail, notiId) {
 
         htmlMail = htmlMail + footer + `<hr><p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>`;
 
-        sendEmail(email, mail, mail.description1, notiId)
+        sendEmail(email, mail,`<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;">${mail.description1}</div>` , notiId)
             .then(notiId => resolve(notiId))
             .catch(err => reject(err));
     });
