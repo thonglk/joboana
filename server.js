@@ -381,48 +381,6 @@ app.get('/sendEmailZoho', (req, res) => {
 
 var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
     return new Promise((resolve, reject) => {
-        // setup email data with unicode symbols
-
-        // var message = {
-        //     "html": emailMarkup,
-        //     "subject": mail.title,
-        //     "from_email": mail.from || CONFIG.email,
-        //     "from_name": mail.name || 'Jobo | Tìm việc nhanh',
-        //     "to": [{
-        //         "email": addressTo,
-        //         "type": "to"
-        //     }],
-        //     "headers": {
-        //         "Reply-To": mail.from
-        //     },
-        //     "important": false,
-        //     "track_opens": null,
-        //     "track_clicks": null,
-        //     "auto_text": null,
-        //     "auto_html": null,
-        //     "inline_css": null,
-        //     "url_strip_qs": null,
-        //     "preserve_recipients": null,
-        //     "view_content_link": null,
-        //     "tracking_domain": null,
-        //     "signing_domain": null,
-        //     "return_path_domain": null,
-        //     "merge": true
-        // };
-        //
-        // mandrill_client.messages.send({"message": message}, function (result) {
-        //     console.log('Email:', result[0].status, notiId + ' ' + addressTo)
-        //
-        //     notificationCol.updateOne({notiId}, {$set: {letter_sent: Date.now()}})
-        //         .then(() => resolve(notiId))
-        //         .catch(err => reject(err))
-        // }, function (e) {
-        //     // Mandrill returns the error as an object with name and message keys
-        //     console.log('Error sent email', e)
-        //     reject(error);
-        //
-        //     // A mandrill error occurred: Unknown_Subaccount - No subaccount exists with the id 'customer-123'
-        // });
 
         let mailOptions = {
             from: {
@@ -1291,7 +1249,7 @@ function sendEmailTemplate(email, mail, notiId) {
 
         htmlMail = htmlMail + footer + `<hr><p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>`;
 
-        sendEmail(email, mail, htmlMail, notiId)
+        sendEmail(email, mail, mail.description1, notiId)
             .then(notiId => resolve(notiId))
             .catch(err => reject(err));
     });
