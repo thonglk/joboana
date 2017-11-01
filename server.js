@@ -341,7 +341,7 @@ app.get('/sendEmailSES', (req, res) => {
 app.get('/sendEmailZoho', (req, res) => {
     var addressTo = req.param('email');
     var from = req.param('from')
-    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(Date.now(), '/joboc.png', 'o', 'l')}"/>Check it now</div>`
+    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(Date.now(), 'https://jobo.asia/file/jobo.png', 'o', 'l')}"/>Check it now</div>`
 
     let mailOptions = {
         from: {
