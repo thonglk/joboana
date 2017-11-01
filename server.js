@@ -341,7 +341,7 @@ app.get('/sendEmailSES', (req, res) => {
 app.get('/sendEmailZoho', (req, res) => {
     var addressTo = req.param('email');
     var from = req.param('from')
-    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(Date.now(), 'https://jobo.asia/file/jobo.png', 'o', 'l')}"/>Check it now</div>`
+    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(Date.now(), 'https://jobo.asia/file/jobo.png', 'o', 'l')}"/>Check it now</div>`;
 
     let mailOptions = {
         from: {
@@ -356,7 +356,7 @@ app.get('/sendEmailZoho', (req, res) => {
 
     var mailSplit = from.split('@')
     var idEmail = mailSplit[0]
-    console.log('idEmail', idEmail)
+    console.log('idEmail', idEmail +' '+ from)
     let mailTransport_sale = nodemailer.createTransport({
         host: 'smtp.zoho.com',
         port: 465,
@@ -1173,8 +1173,8 @@ function sendEmailTemplate(email, mail, notiId) {
     return new Promise((resolve, reject) => {
         var card = {}
 
-        var header = `<div><img src="${addTrackingEmail(notiId, '/joboc.png', 'o', 'l')}"/>`;
-
+        var header = `<div>`;
+    // <img src="${addTrackingEmail(notiId, 'https://jobo.asia/file/jobo.png', 'o', 'l')}"/>
         var footer = '</div>';
 
 
