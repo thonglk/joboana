@@ -308,19 +308,27 @@ app.get('/sendEmailManrill', (req, res) => {
 app.get('/sendEmailSES', (req, res) => {
     var addressTo = req.param('email');
     var from = req.param('from')
-    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(keygen(), '/jobo.png')}"/>Check it now</div>`
+    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;">Check it now</div>`
 
     let mailOptions = {
         from: {
             name: 'Jobo',
-            address: from || 'contact@joboapp.com'
+            address: from || 'hello@jobo.asia'
         },
         to: addressTo, // list of receivers
         subject: 'Test Email |' + Date.now(), // Subject line
-        // text: 'Hello world?', // plain text body
-        html: `${emailMarkup}`, // html body
+        text: 'Hello world?', // plain text body
+        // html: `${emailMarkup}`, // html body
     }
-
+    let mailTransport = nodemailer.createTransport({
+        host: 'email-smtp.us-west-2.amazonaws.com',
+        port: 465,
+        secure: true, // true for 465, false for other ports
+        auth: {
+            user: 'AKIAIPEQRRW6Z3LYMMIA', // generated ethereal user
+            pass: 'At0JsP1N4Ldkm01zmt1Vonfu1tbeZv3WU6BdpIijc/YN'  // generated ethereal password
+        }
+    });
 
     // send mail with defined transport object
     mailTransport.sendMail(mailOptions, (error, info) => {
@@ -333,7 +341,7 @@ app.get('/sendEmailSES', (req, res) => {
 app.get('/sendEmailZoho', (req, res) => {
     var addressTo = req.param('email');
     var from = req.param('from')
-    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(keygen(), '/jobo.png')}"/>Check it now</div>`
+    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(Date.now(), '/joboc.png', 'o', 'l')}"/>Check it now</div>`
 
     let mailOptions = {
         from: {
@@ -343,6 +351,8 @@ app.get('/sendEmailZoho', (req, res) => {
         to: addressTo, // list of receivers
         subject: 'Test Email Zoho |' + Date.now(), // Subject line
         html: emailMarkup, // html body
+        // text: 'Hello world?', // plain text body
+
     }
 
     var mailSplit = from.split('@')
@@ -1164,7 +1174,7 @@ function sendEmailTemplate(email, mail, notiId) {
     return new Promise((resolve, reject) => {
         var card = {}
 
-        var header = `<div><img src="${addTrackingEmail(notiId, '/jobo.png', 'o', 'l')}"/>`;
+        var header = `<div><img src="${addTrackingEmail(notiId, '/joboc.png', 'o', 'l')}"/>`;
 
         var footer = '</div>';
 
