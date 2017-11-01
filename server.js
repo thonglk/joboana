@@ -435,8 +435,8 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         console.log('idEmail', idEmail)
         let mailTransport_sale = nodemailer.createTransport({
             host: 'smtp.zoho.com',
-            port: 465,
-            secure: true, // true for 465, false for other ports
+            port: 587,
+            secure: false, // true for 465, false for other ports
             auth: {
                 user: CONFIG.zoho_email[idEmail].email, // generated ethereal user
                 pass: CONFIG.zoho_email[idEmail].password  // generated ethereal password
