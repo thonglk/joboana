@@ -356,7 +356,7 @@ app.get('/sendEmailZoho', (req, res) => {
 
     var mailSplit = from.split('@')
     var idEmail = mailSplit[0]
-    console.log('idEmail', idEmail +' '+ from)
+    console.log('idEmail', idEmail + ' ' + from)
     let mailTransport_sale = nodemailer.createTransport({
         host: 'smtp.zoho.com',
         port: 465,
@@ -580,35 +580,32 @@ function keygen() {
     return key
 }
 
-function addTrackingEmail(notiId, url, t = 'o', p = 'l', i = '') {
-    if (url) {
-        var trackUrl = ''
-        var platform = configP[p]
-        var type = configT[t]
-        var urlId = ''
+function addTrackingEmail(notiId, url = 'https://firebasestorage.googleapis.com/v0/b/jobo-b8204.appspot.com/o/images%2Fjobo.png?alt=media&token=7c84f5ce-606d-4f18-a85b-177839349566', t = 'o', p = 'l', i = '') {
+    var trackUrl = ''
+    var platform = configP[p]
+    var type = configT[t]
+    var urlId = ''
 
-        if (i.length > 0) {
-            urlId = notiId + ':' + p + ':' + t + ':' + i
-        } else {
-            urlId = notiId + ':' + p + ':' + t
-        }
-        joboPxl.database().ref('/links/' + urlId)
-            .update({
-                url,
-                linkId: notiId,
-                platform,
-                type
-            })
-        console.log();
-        if (t == 'o') {
-            trackUrl = CONFIG.AnaURL + '/l/' + urlId
-        } else {
-            trackUrl = CONFIG.WEBURL + '/l/' + urlId
-        }
-        console.log('url', trackUrl)
-        return trackUrl
+    if (i.length > 0) {
+        urlId = notiId + ':' + p + ':' + t + ':' + i
+    } else {
+        urlId = notiId + ':' + p + ':' + t
     }
-
+    joboPxl.database().ref('/links/' + urlId)
+        .update({
+            url,
+            linkId: notiId,
+            platform,
+            type
+        })
+    console.log();
+    if (t == 'o') {
+        trackUrl = CONFIG.AnaURL + '/l/' + urlId
+    } else {
+        trackUrl = CONFIG.WEBURL + '/l/' + urlId
+    }
+    console.log('url', trackUrl)
+    return trackUrl
 
 }
 
@@ -1131,8 +1128,8 @@ function sendEmailTemplate(email, mail, notiId) {
     return new Promise((resolve, reject) => {
         var card = {}
 
-        var header = `<div>`;
-    // <img src="${addTrackingEmail(notiId, 'https://jobo.asia/file/jobo.png', 'o', 'l')}"/>
+        var header = `<div><img src="${addTrackingEmail(notiId)}"/>`;
+        // <img src="${addTrackingEmail(notiId, 'https://jobo.asia/file/jobo.png', 'o', 'l')}"/>
         var footer = '</div>';
 
 
@@ -1174,21 +1171,21 @@ function sendEmailTemplate(email, mail, notiId) {
 
         var htmlMail = '';
         if (mail.description1) {
-            htmlMail = htmlMail + header + trackingTemplate(mail.description1, notiId) + '<br>'
+            htmlMail = htmlMail + header + mail.description1 + '<br>'
         }
         if (mail.image) {
             htmlMail = htmlMail + image + '<br>'
         }
 
         if (mail.description2) {
-            htmlMail = htmlMail + trackingTemplate(mail.description2, notiId) + '<br>'
+            htmlMail = htmlMail + mail.description2 + '<br>'
         }
         if (mail.linktoaction) {
             htmlMail = htmlMail + button + '<br>'
 
         }
         if (mail.description3) {
-            htmlMail = htmlMail + trackingTemplate(mail.description3, notiId) + '<br>'
+            htmlMail = htmlMail + mail.description3 + '<br>'
         }
 
         if (mail.data) {
@@ -1244,12 +1241,12 @@ function sendEmailTemplate(email, mail, notiId) {
             htmlMail = htmlMail + card_footer
         }
         if (mail.description4) {
-            htmlMail = htmlMail + trackingTemplate(mail.description4, notiId) + '<br>'
+            htmlMail = htmlMail + mail.description4 + '<br>'
         }
 
-        htmlMail = htmlMail + footer + `<hr><p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>`;
+        // htmlMail = htmlMail + footer + `<hr><p style="text-align: right;"><span style="color: rgb(204, 204, 204); font-size: 10px;"><a href="${CONFIG.WEBURL}/unsubscribe?id=${notiId}?email=${email}" rel="noopener noreferrer" style="text-decoration:none; color: rgb(204, 204, 204);" target="_blank">Từ chối nhận thư</a></span></p>`;
 
-        sendEmail(email, mail,`<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;">${mail.description1}</div>` , notiId)
+        sendEmail(email, mail, htmlMail, notiId)
             .then(notiId => resolve(notiId))
             .catch(err => reject(err));
     });
