@@ -1128,13 +1128,12 @@ function sendEmailTemplate(email, mail, notiId) {
     return new Promise((resolve, reject) => {
         var card = {}
 
-        var header = `<div><img src="${addTrackingEmail(notiId)}"/>`;
-
+        var header = `<div>`;
+    // <img src="${addTrackingEmail(notiId)}"/>
         var footer = '</div>';
 
 
-        var image =
-            '   <img alt="" title="" height="auto" src="' + mail.image + '" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="550">';
+        var image = '   <img alt="" title="" height="auto" src="' + mail.image + '" style="border:none;border-radius:0px;display:block;font-size:13px;outline:none;text-decoration:none;width:100%;height:auto;" width="550">';
 
 
         var button = '<a href="' + addTrackingEmail(notiId, mail.linktoaction, 'c', 'l') + '" style="color:#1FBDF1" target="_blank"> ' + mail.calltoaction + '</a>'
@@ -1165,8 +1164,6 @@ function sendEmailTemplate(email, mail, notiId) {
             '    <!--[if mso | IE]>\n' +
             '    </td></tr></table>\n' +
             '    <![endif]-->'
-
-        var outtro = ''
 
 
         var htmlMail = '';
