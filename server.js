@@ -2008,7 +2008,7 @@ app.get('/fbReports', (req, res, next) => {
 
 const profileRouter = express.Router({mergeParams: true});
 
-profileRouter.route('/export')
+app.route('/profile/export')
     .get((req, res, next) => {
 
         var query = req.query
@@ -2017,7 +2017,7 @@ profileRouter.route('/export')
             .then(data => res.json(data))
             .catch(err => res.send(`Err: ${JSON.stringify(err)}`));
     });
-profileRouter.route('/import')
+app.route('/profile/import')
     .post((req, res, next) => {
         const {userId, createdAt, name, school, address, avatar, birth, weight, working_type, time, industry, description, expect_distance, expect_salary, experience, figure, height, job, languages, videourl, photo, note, date} = req.body;
         const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
@@ -2055,13 +2055,16 @@ profileRouter.route('/import')
 function exportProfile(query) {
     return new Promise((resolve, reject) => {
 
-        axios.get(CONFIG.APIURL + 'api/users', {params: query})
+        axios.get(CONFIG.APIURL + '/api/users', {params: query})
             .then(result => {
+                console.log('result.data',result.data.length)
                 return Promise.resolve(result.data)
             })
             .then(profiles => {
                 return Promise.resolve(profiles.map(profile => {
                     const userId = `https://jobo.asia/view/profile/${profile.userId}`;
+                    let email = profile.email || '';
+                    let phone = profile.phone || '';
                     let experience = '';
                     let time = '';
                     let languages = '';
@@ -2106,7 +2109,7 @@ function exportProfile(query) {
                             date += `\n\n${new Date(adminNote.date).toLocaleString()}\n\n`;
                         });
                     }
-                    return [userId, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date];
+                    return [userId,email,phone, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date];
                 }));
             })
             .then(values => {
