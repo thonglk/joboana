@@ -1129,7 +1129,7 @@ function sendEmailTemplate(email, mail, notiId) {
         var card = {}
 
         var header = `<div>`;
-    // <img src="${addTrackingEmail(notiId)}"/>
+        // <img src="${addTrackingEmail(notiId)}"/>
         var footer = '</div>';
 
 
@@ -1784,9 +1784,8 @@ app.get('/dumpling/getQuestion', function (req, res) {
     if (friendList.length > 3) {
         var options = _.sample(friendList, 4)
         res.send({question, options})
-    } else {
-        res.send({err: 'You need to have more than 4 friends'})
-    }
+    } else res.send({err: 'You need to have more than 4 friends'})
+
 });
 
 app.get('/dumpling/getAllUser', function (req, res) {
@@ -2011,7 +2010,10 @@ const profileRouter = express.Router({mergeParams: true});
 
 profileRouter.route('/export')
     .get((req, res, next) => {
-        exportProfile()
+
+        var query = req.query
+        query.all = true
+        exportProfile(query)
             .then(data => res.json(data))
             .catch(err => res.send(`Err: ${JSON.stringify(err)}`));
     });
@@ -2050,11 +2052,12 @@ profileRouter.route('/import')
             .catch(err => res.status(500).send(err));
     });
 
-function exportProfile() {
+function exportProfile(query) {
     return new Promise((resolve, reject) => {
-        profileRef.orderByChild('createdAt').once('value')
-            .then(_profiles => {
-                return Promise.resolve(_.toArray(_profiles.val()));
+
+        axios.get(CONFIG.APIURL + 'api/users', {params: query})
+            .then(result => {
+                return Promise.resolve(result.data)
             })
             .then(profiles => {
                 return Promise.resolve(profiles.map(profile => {
@@ -2631,7 +2634,7 @@ app.get('/job/export', (req, res, next) => {
         .then(_jobs => {
             const jobs = _.sortBy(_jobs.val(), function (card) {
                 return -card.createdAt
-            })
+            });
             return Promise.all(jobs.map(job => {
                 return [job];
             }));
