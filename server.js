@@ -1337,8 +1337,8 @@ function sendMessenger(messengerId, noti, key) {
                         text: noti.body || '(Y)',
                         buttons: [{
                             type: "web_url",
-                            url: "https://www.oculus.com/en-us/rift/",
-                            title: "Open Web URL"
+                            url: noti.linktoaction,
+                            title: noti.calltoaction
                         }]
                     }
                 }
