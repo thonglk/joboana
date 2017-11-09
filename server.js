@@ -1328,14 +1328,28 @@ function sendMessenger(messengerId, noti, key) {
     return new Promise((resolve, reject) => {
         var url = 'https://jobo-chat.herokuapp.com/noti';
 
+        if (noti.linktoaction) {
+            var message = {
+                attachment: {
+                    type: "template",
+                    payload: {
+                        template_type: "button",
+                        text: noti.body || '(Y)',
+                        buttons: [{
+                            type: "web_url",
+                            url: "https://www.oculus.com/en-us/rift/",
+                            title: "Open Web URL"
+                        }]
+                    }
+                }
+            }
+        } else {
+             message = {text: noti.body}
+        }
+
         var param = {
-            messages: {
-                text: noti.body || '',
-                calltoaction: noti.calltoaction || '',
-                linktoaction: addTrackingEmail(key, noti.linktoaction, 'c', 'M') || '',
-                image: noti.image || ''
-            },
-            recipientIds: messengerId
+            message,
+            recipientId: messengerId
         };
 
         axios.post(url, param)
@@ -2057,7 +2071,7 @@ function exportProfile(query) {
 
         axios.get(CONFIG.APIURL + '/api/users', {params: query})
             .then(result => {
-                console.log('result.data',result.data.length)
+                console.log('result.data', result.data.length)
                 return Promise.resolve(result.data)
             })
             .then(profiles => {
@@ -2109,7 +2123,7 @@ function exportProfile(query) {
                             date += `\n\n${new Date(adminNote.date).toLocaleString()}\n\n`;
                         });
                     }
-                    return [userId,email,phone, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date];
+                    return [userId, email, phone, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date];
                 }));
             })
             .then(values => {
@@ -2633,13 +2647,13 @@ app.get('/job/export', (req, res, next) => {
     const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
     const range = 'JobCOL!A2:J';
 
-    joboTest.database().ref('job').once('value')
+    secondary.database().ref('job').once('value')
         .then(_jobs => {
             const jobs = _.sortBy(_jobs.val(), function (card) {
                 return -card.createdAt
             });
             return Promise.all(jobs.map(job => {
-                return [job];
+                return [job.storeId, job.jobId, job.jobName, job.createdAt, job.createdBy, job.deadline, job.salary, job.hourly_wages, job.unit, job.time, job.working_type, job.description, job.sex];
             }));
         })
         .then(values => appendData(auth, spreadsheetId, range, values))
