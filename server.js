@@ -168,23 +168,10 @@ var db = joboTest.database();
 var db2 = joboPxl.database();
 
 
-db2.ref('tempNoti').on('child_added', function (snap) {
-    var noti = snap.val()
-    if (!noti) return
-    if (!noti.notiId) noti.notiId = keygen()
-    notificationCol.insert(noti, function (err, data) {
-        if (err) {
-            console.log(err)
-        } else {
-            db2.ref('tempNoti').child(snap.key).remove()
-        }
-    })
 
-})
 
 
 var configRef = db.ref('config');
-
 
 
 var groupRef = db.ref('groupData');
@@ -254,6 +241,28 @@ function init() {
 
     }, 60000)
 
+    db2.ref('tempNoti').on('child_added', function (snap) {
+        var noti = snap.val()
+        if (!noti) return
+        if (!noti.notiId) noti.notiId = keygen()
+        notificationCol.insert(noti, function (err, data) {
+            if (err) {
+                console.log(err)
+            } else {
+                if (noti.time < Date.now() + 60000){
+                    console.log('noti', a++);
+                    schedule.scheduleJob(noti.time, function () {
+                        startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+                            console.log('array', array)
+                        })
+                    })
+                }
+
+                db2.ref('tempNoti').child(snap.key).remove()
+            }
+        })
+
+    })
 
 }
 
@@ -1424,7 +1433,7 @@ app.post('/newPost', (req, res, next) => {
     const mgPost = new FacebookPost(post)
     mgPost.save()
         .then(post => {
-            if (post.time > Date.now() && post.time < Date.now() + 86400 * 1000) {
+            if (post.time > Date.now() && post.time < Date.now() + 60000) {
                 console.log('facebook', b++);
                 let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
                 schedule.scheduleJob(post.time, function () {
