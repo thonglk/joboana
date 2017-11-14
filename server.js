@@ -177,17 +177,6 @@ db2.ref('tempNoti').on('child_added', function (snap) {
             console.log(err)
         } else {
             db2.ref('tempNoti').child(snap.key).remove()
-            if (noti.time > Date.now() && noti.time < Date.now() + 86400 * 1000) {
-                console.log('noti', a++);
-                schedule.scheduleJob(noti.time, function () {
-                    startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-                        console.log('array', array)
-                    })
-                })
-                console.log('scheduled notification', noti.notiId)
-            } else {
-                console.log('save notification', noti.notiId)
-            }
         }
     })
 
@@ -195,9 +184,9 @@ db2.ref('tempNoti').on('child_added', function (snap) {
 
 
 var configRef = db.ref('config');
-var notificationRef = db2.ref('notihihi');
 
-var dataUser, dataProfile, dataStore, dataJob, dataStatic, likeActivity, dataLog, dataNoti, dataLead, dataEmail, Lang
+
+
 var groupRef = db.ref('groupData');
 var storeRef = db.ref('store');
 var userRef = db.ref('user');
@@ -231,24 +220,41 @@ function init() {
     })
 
 
-    var startTime = Date.now();
-    var endTime = startTime + 86400 * 1000;
     var a = 0,
         b = 0;
 
 
-    FacebookPost.find({'time': {$gt: startTime, $lt: endTime}})
-        .then(posts => {
-            posts.forEach(function (post) {
-                console.log('facebook', b++);
-                let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
-                schedule.scheduleJob(post.time, function () {
-                    promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
-                });
-                return promise;
+    setInterval(function () {
+        FacebookPost.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
+            .then(posts => {
+                posts.forEach(function (post) {
+                    console.log('facebook', b++);
+                    let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
+                    schedule.scheduleJob(post.time, function () {
+                        promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
+                    });
+                    return promise;
+                })
+
             })
 
-        })
+
+        notificationCol.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
+            .toArray(function (err, notis) {
+                if (err) return
+                notis.forEach(noti => {
+                    console.log('noti', a++);
+                    schedule.scheduleJob(noti.time, function () {
+                        startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+                            console.log('array', array)
+                        })
+                    })
+                })
+            });
+
+    }, 60000)
+
+
 }
 
 app.get('/sendEmailManrill', (req, res) => {
@@ -396,7 +402,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         var mailSplit = mail.from.split('@')
         var idEmail = mailSplit[0]
         console.log('idEmail', idEmail)
-        if(mailOptions.from.address == 'contact@jobo.asia') var mailTransport = nodemailer.createTransport(ses({
+        if (mailOptions.from.address == 'contact@jobo.asia') var mailTransport = nodemailer.createTransport(ses({
             accessKeyId: 'AKIAIJJTKSHNDOBZWVEA',
             secretAccessKey: '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',
             region: 'us-west-2'
