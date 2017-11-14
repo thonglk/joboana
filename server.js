@@ -313,22 +313,18 @@ app.get('/sendEmailSES', (req, res) => {
     let mailOptions = {
         from: {
             name: 'Jobo',
-            address: from || 'hello@jobo.asia'
+            address: from || 'contact@jobo.asia'
         },
         to: addressTo, // list of receivers
         subject: 'Test Email |' + Date.now(), // Subject line
         text: 'Hello world?', // plain text body
         // html: `${emailMarkup}`, // html body
     }
-    let mailTransport = nodemailer.createTransport({
-        host: 'email-smtp.us-west-2.amazonaws.com',
-        port: 465,
-        secure: true, // true for 465, false for other ports
-        auth: {
-            user: 'AKIAIPEQRRW6Z3LYMMIA', // generated ethereal user
-            pass: 'At0JsP1N4Ldkm01zmt1Vonfu1tbeZv3WU6BdpIijc/YN'  // generated ethereal password
-        }
-    });
+    var mailTransport = nodemailer.createTransport(ses({
+        accessKeyId: 'AKIAIJJTKSHNDOBZWVEA',
+        secretAccessKey: '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',
+        region: 'us-west-2'
+    }));
 
     // send mail with defined transport object
     mailTransport.sendMail(mailOptions, (error, info) => {
@@ -400,7 +396,12 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         var mailSplit = mail.from.split('@')
         var idEmail = mailSplit[0]
         console.log('idEmail', idEmail)
-        let mailTransport_sale = nodemailer.createTransport({
+        if(mailOptions.from.address == 'contact@jobo.asia') var mailTransport = nodemailer.createTransport(ses({
+            accessKeyId: 'AKIAIJJTKSHNDOBZWVEA',
+            secretAccessKey: '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',
+            region: 'us-west-2'
+        }))
+        else mailTransport = nodemailer.createTransport({
             host: 'smtp.zoho.com',
             port: 587,
             secure: false, // true for 465, false for other ports
@@ -411,7 +412,7 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         });
 
         // send mail with defined transport object
-        mailTransport_sale.sendMail(mailOptions, (error, info) => {
+        mailTransport.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.log('Error sent email', addressTo)
                 reject(error);
@@ -1264,7 +1265,7 @@ function startSend(userData, mail, channel, notiId) {
                         letter: true
                     }))
                     .catch(err => {
-                        console.log('err', err)
+                        console.log('err', err);
                         resolve({notiId, letter: false})
                     });
             } else resolve({notiId, letter: false});
@@ -1344,7 +1345,7 @@ function sendMessenger(messengerId, noti, key) {
                 }
             }
         } else {
-             message = {text: noti.body}
+            message = {text: noti.body}
         }
 
         var param = {
@@ -2659,4 +2660,22 @@ app.get('/job/export', (req, res, next) => {
         .then(values => appendData(auth, spreadsheetId, range, values))
         .then(data => res.status(200).json(data))
         .catch(err => res.status(500).send(err));
+});
+
+app.get('/group/export', (req, res, next) => {
+    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = 'GroupCOL!A2:J';
+
+    axios.get(CONFIG.APIURL + '/config')
+        .then(result => {
+            var groupData = _.toArray(result.data.groupData)
+
+            return Promise.all(groupData.map(group => {
+                return [group.groupId, group.name, group.link, group.area, group.job];
+            }));
+        })
+        .then(values => appendData(auth, spreadsheetId, range, values))
+        .then(data => res.status(200).json(data))
+        .catch(err => res.status(500).send(err));
+
 });
