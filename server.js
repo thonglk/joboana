@@ -403,13 +403,16 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
             subject: mail.title, // Subject line
             html: emailMarkup, // html body
         }
+
         if (mail.attachments) {
             mailOptions.attachments = [{ // filename and content type is derived from path
                 path: 'https://jobo.asia/img/proposal_pricing_included.pdf'
             }]
         }
+
         var mailSplit = mail.from.split('@')
-        var idEmail = mailSplit[0]
+        var idEmail = mailSplit[0];
+
         console.log('idEmail', idEmail)
         if (mailOptions.from.address == 'contact@jobo.asia') var mailTransport = nodemailer.createTransport(ses({
             accessKeyId: 'AKIAIJJTKSHNDOBZWVEA',
@@ -1343,14 +1346,14 @@ function getPaginatedItems(items, page) {
 function sendMessenger(messengerId, noti, key) {
     return new Promise((resolve, reject) => {
         var url = 'https://jobo-chat.herokuapp.com/noti';
-
+        var text = `[ ${(noti.title)?noti.title:'Hệ thống'} ] \n ${noti.body}`
         if (noti.linktoaction) {
             var message = {
                 attachment: {
                     type: "template",
                     payload: {
                         template_type: "button",
-                        text: noti.body || '(Y)',
+                        text,
                         buttons: [{
                             type: "web_url",
                             url: noti.linktoaction,
@@ -1360,7 +1363,7 @@ function sendMessenger(messengerId, noti, key) {
                 }
             }
         } else {
-            message = {text: noti.body}
+            message = {text}
         }
 
         var param = {
