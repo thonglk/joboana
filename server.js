@@ -1347,8 +1347,12 @@ function sendMessenger(messengerId, noti, key) {
     return new Promise((resolve, reject) => {
         var url = 'https://jobo-chat.herokuapp.com/noti';
         var text = `[ ${(noti.title)?noti.title:'Hệ thống'} ] \n ${noti.body}`
-        if (noti.linktoaction) {
-            var message = {
+        if(noti.payload){
+
+            var message = noti.payload
+
+        } else if (noti.linktoaction) {
+            message = {
                 attachment: {
                     type: "template",
                     payload: {
