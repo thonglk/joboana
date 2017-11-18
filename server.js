@@ -86,52 +86,10 @@ MongoClient.connect(uri, function (err, db) {
 
 // TODO(DEVELOPER): Configure your email transport.
 
-//
-// var mailTransport = nodemailer.createTransport(ses({
-//     accessKeyId: 'AKIAJHPP64MDOXMXAZRQ',
-//     secretAccessKey: 'xNzQL2bFyfCg6ZP2XsG8W6em3xiweNQArWUnnADW',
-//     region: 'us-east-1'
-// }));
-// var mailTransport = nodemailer.createTransport(ses({
-//     accessKeyId: 'AKIAJB7IJS2GP6NGLFSQ',
-//     secretAccessKey: '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',
-//     region: 'us-west-2'
-// }));
 
-// var mailTransport = nodemailer.createTransport(ses({
-//     accessKeyId: 'AKIAIPEQRRW6Z3LYMMIA',
-//     secretAccessKey: 'At0JsP1N4Ldkm01zmt1Vonfu1tbeZv3WU6BdpIijc/YN',
-//     region: 'us-west-2'
-// }));
 
 var mandrill = require('mandrill-api/mandrill');
 var mandrill_client = new mandrill.Mandrill('o0QnNTrMVDz68x3S55Hb6Q');
-var sgTransport = require('nodemailer-sendgrid-transport');
-
-var options = {
-    auth: {
-        api_user: 'joboapi',
-        api_key: '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'
-    }
-}
-let mailTransport = nodemailer.createTransport(sgTransport(options));
-
-// let mailTransport = nodemailer.createTransport({
-//     host: 'email-smtp.us-west-2.amazonaws.com',
-//     port: 465,
-//     secure: true, // true for 465, false for other ports
-//     auth: {
-//         user: 'AKIAIPEQRRW6Z3LYMMIA', // generated ethereal user
-//         pass: 'At0JsP1N4Ldkm01zmt1Vonfu1tbeZv3WU6BdpIijc/YN'  // generated ethereal password
-//     }
-// });
-mailTransport.verify(function (error, success) {
-    if (error) {
-        console.log(error);
-    } else {
-        console.log('Server is ready to take our messages');
-    }
-});
 
 
 app.use(express.static(__dirname + '/static'));
@@ -464,7 +422,7 @@ app.get('/l/:queryString', function (req, res, next) {
     var platform = configP[p]
     var type = configT[t]
 
-    console.log(notiId, platform, type)
+    console.log(notiId, platform, type);
 
     findLink(queryString)
         .then(foundLink => {
@@ -1463,6 +1421,46 @@ function addShortLinkFBPost(postId, text) {
     return text;
 }
 
+app.get('/PublishWall', function (req, res) {
+    let {message, poster} = req.query
+
+    var content = {text: message}
+    PublishWall(content, poster).then(result => res.send(result))
+        .catch(err => res.status(500).json(err))
+
+})
+function PublishWall(content, poster, postId) {
+    return new Promise((resolve, reject) => {
+
+        console.log('scheduleJob_PublishFacebook_run', poster, postId)
+        var accessToken = facebookAccount[poster].access_token
+        if (content && accessToken) {
+            var url = "feed?access_token=" + accessToken
+            var params = {"message": content.text}
+
+            if (content.type == 'image') {
+                url = "photos?access_token=" + accessToken
+                params = {
+                    "url": content.image,
+                    "caption": content.text
+                }
+            }
+            graph.post(url, params,
+                function (err, res) {
+                    // returns the post id
+                    if (err) {
+
+                        console.log(err.message, poster);
+
+                        reject(err)
+                    } else {
+                        resolve(res)
+                    }
+                });
+        }
+    });
+}
+
 function PublishFacebook(to, content, poster, postId) {
     return new Promise((resolve, reject) => {
         a++
@@ -1499,6 +1497,27 @@ function PublishFacebook(to, content, poster, postId) {
                         FacebookPost.findOneAndUpdate({postId}, {id, still_alive, sent: Date.now()}, {new: true})
                             .then(updatedPost => resolve(updatedPost))
                             .catch(err => reject(err));
+                    }
+                });
+
+            var url2 ="feed?access_token=" + accessToken
+
+            if (content.type == 'image') {
+                url2 = "photos?access_token=" + accessToken
+            }
+            graph.post(url2, params,
+                function (err, res) {
+                    // returns the post id
+                    if (err) {
+
+                        console.log(err.message, to, poster);
+
+                    } else {
+                        var id = res.id;
+                        console.log(id);
+
+
+
                     }
                 });
         }
