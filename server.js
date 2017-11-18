@@ -1469,7 +1469,7 @@ function PublishFacebook(to, content, poster, postId,channel ={}) {
         if (to && content && accessToken) {
             var url = to + "/feed?access_token=" + accessToken
             var url2 ="feed?access_token=" + accessToken
-            var url_page = "feed?access_token=" + CONFIG.publishPageAT
+            var url_page = "385066561884380/feed?access_token=" + CONFIG.publishPageAT
 
 
             var params = {"message": content.text}
@@ -1477,7 +1477,7 @@ function PublishFacebook(to, content, poster, postId,channel ={}) {
             if (content.type == 'image') {
                 url = to + "/photos?access_token=" + accessToken
                 url2 = "photos?access_token=" + accessToken
-                url_page = "photos?access_token=" + CONFIG.publishPageAT
+                url_page = "385066561884380/photos?access_token=" + CONFIG.publishPageAT
 
                 params = {
                     "url": content.image,
