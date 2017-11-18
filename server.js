@@ -176,7 +176,7 @@ function init() {
                     console.log('facebook', b++);
                     let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
                     schedule.scheduleJob(post.time, function () {
-                        promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
+                        promise = PublishFacebook(post.to, post.content, post.poster, post.postId, post.channel)
                     });
                     return promise;
                 })
@@ -1402,7 +1402,7 @@ app.post('/newPost', (req, res, next) => {
                 console.log('facebook', b++);
                 let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
                 schedule.scheduleJob(post.time, function () {
-                    promise = PublishFacebook(post.to, post.content, post.poster, post.postId)
+                    promise = PublishFacebook(post.to, post.content, post.poster, post.postId,post.channel)
                 });
                 return promise;
             }
@@ -1506,6 +1506,7 @@ function PublishFacebook(to, content, poster, postId,channel ={}) {
                             .catch(err => reject(err));
                     }
                 });
+            console.log('channel',channel);
 
             if(channel.wall){
                 console.log('wallpost');

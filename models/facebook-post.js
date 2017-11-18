@@ -81,7 +81,27 @@ var postSchema = new _mongoose.Schema({
     check_error: {
         type: String,
         default: null
-    }
+    },
+    channel: {
+        type: Object,
+        default: null
+    },
+    wall_id:{
+        type: String,
+        default: null
+    },
+    wall_error:{
+        type: String,
+        default: null
+    },
+    page_id:{
+        type: String,
+        default: null
+    },
+    page_error:{
+        type: String,
+        default: null
+    },
 
 }, {collection: 'facebookPost'});
 
