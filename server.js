@@ -1461,17 +1461,24 @@ function PublishWall(content, poster, postId) {
     });
 }
 
-function PublishFacebook(to, content, poster, postId) {
+function PublishFacebook(to, content, poster, postId,channel ={}) {
     return new Promise((resolve, reject) => {
         a++
         console.log('scheduleJob_PublishFacebook_run', to, poster, postId)
         var accessToken = facebookAccount[poster].access_token
         if (to && content && accessToken) {
             var url = to + "/feed?access_token=" + accessToken
+            var url2 ="feed?access_token=" + accessToken
+            var url_page = "feed?access_token=" + CONFIG.publishPageAT
+
+
             var params = {"message": content.text}
 
             if (content.type == 'image') {
                 url = to + "/photos?access_token=" + accessToken
+                url2 = "photos?access_token=" + accessToken
+                url_page = "photos?access_token=" + CONFIG.publishPageAT
+
                 params = {
                     "url": content.image,
                     "caption": content.text
@@ -1493,33 +1500,67 @@ function PublishFacebook(to, content, poster, postId) {
                         var id = res.id;
                         console.log(id);
                         var still_alive = true
-                        // facebookPostRef.child(postId).update({ id, sent: Date.now() })
+
                         FacebookPost.findOneAndUpdate({postId}, {id, still_alive, sent: Date.now()}, {new: true})
                             .then(updatedPost => resolve(updatedPost))
                             .catch(err => reject(err));
                     }
                 });
 
-            var url2 ="feed?access_token=" + accessToken
+            if(channel.wall){
+                console.log('wallpost');
 
-            if (content.type == 'image') {
-                url2 = "photos?access_token=" + accessToken
+                graph.post(url2, params,
+                    function (err, res) {
+                        // returns the post id
+                        if (err) {
+
+                            console.log(err.message, to, poster);
+                            FacebookPost.findOneAndUpdate({postId}, {
+                                wall_error: err.message
+                            }, {new: true})
+                                .then(updatedPost => resolve(updatedPost))
+                                .catch(err => reject(err));
+                        } else {
+                            var wall_id = res.id;
+
+                            console.log(wall_id);
+                            FacebookPost.findOneAndUpdate({postId}, {wall_id}, {new: true})
+                                .then(updatedPost => resolve(updatedPost))
+                                .catch(err => reject(err));
+
+
+                        }
+                    });
             }
-            graph.post(url2, params,
-                function (err, res) {
-                    // returns the post id
-                    if (err) {
+            if(channel.page){
+                console.log('pagePost');
 
-                        console.log(err.message, to, poster);
+                graph.post(url_page, params,
+                    function (err, res) {
+                        // returns the post id
+                        if (err) {
 
-                    } else {
-                        var id = res.id;
-                        console.log(id);
+                            console.log(err.message, to, poster);
+                            FacebookPost.findOneAndUpdate({postId}, {
+                                page_error: err.message
+                            }, {new: true})
+                                .then(updatedPost => resolve(updatedPost))
+                                .catch(err => reject(err));
+                        } else {
+                            var page_id = res.id;
+
+                            console.log(page_id);
+                            FacebookPost.findOneAndUpdate({postId}, {page_id}, {new: true})
+                                .then(updatedPost => resolve(updatedPost))
+                                .catch(err => reject(err));
 
 
+                        }
+                    });
+            }
 
-                    }
-                });
+
         }
     });
 }
