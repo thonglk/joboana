@@ -64,7 +64,7 @@ var postSchema = new _mongoose.Schema({
     to: String,
     still_alive: {
         type: Boolean,
-        default: true
+        default: null
     },
     checkAt: {
         type: Date,
