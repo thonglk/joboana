@@ -87,7 +87,6 @@ MongoClient.connect(uri, function (err, db) {
 // TODO(DEVELOPER): Configure your email transport.
 
 
-
 var mandrill = require('mandrill-api/mandrill');
 var mandrill_client = new mandrill.Mandrill('o0QnNTrMVDz68x3S55Hb6Q');
 
@@ -124,9 +123,6 @@ var joboTest = firebase.initializeApp({
 
 var db = joboTest.database();
 var db2 = joboPxl.database();
-
-
-
 
 
 var configRef = db.ref('config');
@@ -207,7 +203,7 @@ function init() {
             if (err) {
                 console.log(err)
             } else {
-                if (noti.time < Date.now() + 60000){
+                if (noti.time < Date.now() + 60000) {
                     console.log('noti', a++);
                     schedule.scheduleJob(noti.time, function () {
                         startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
@@ -223,6 +219,7 @@ function init() {
     })
 
 }
+
 
 app.get('/sendEmailManrill', (req, res) => {
     var {email} = req.query
@@ -620,6 +617,14 @@ function tracking(notiId, platform, url, type = 'open') {
     });
 }
 
+app.get('/messengerRead', function (req, res) {
+    var {notiId} = req.query
+    tracking(notiId, 'messenger', null, 'open').then(results => res.send(results))
+        .catch(err => res.status(500).json(err))
+
+
+})
+
 function shortenURL(longURL, key) {
     var shorturl = '';
 
@@ -670,6 +675,7 @@ function trackingTemplate(html, postId) {
         return html;
     }
 }
+
 function replaceN(html) {
     if (html.length > 0) {
         html = html.replace(/\n/g, "<br />");
@@ -1315,8 +1321,8 @@ function getPaginatedItems(items, page) {
 function sendMessenger(messengerId, noti, key) {
     return new Promise((resolve, reject) => {
         var url = 'https://jobo-chat.herokuapp.com/noti';
-        var text = `[ ${(noti.title)?noti.title:'Hệ thống'} ] \n ${noti.body}`
-        if(noti.payload){
+        var text = `[ ${(noti.title) ? noti.title : 'Hệ thống'} ] \n ${noti.body}`
+        if (noti.payload) {
 
             var message = noti.payload
 
@@ -1413,7 +1419,7 @@ app.post('/newPost', (req, res, next) => {
                 console.log('facebook', b++);
                 let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
                 schedule.scheduleJob(post.time, function () {
-                    promise = PublishFacebook(post.to, post.content, post.poster, post.postId,post.channel)
+                    promise = PublishFacebook(post.to, post.content, post.poster, post.postId, post.channel)
                 });
                 return promise;
             }
@@ -1440,6 +1446,7 @@ app.get('/PublishWall', function (req, res) {
         .catch(err => res.status(500).json(err))
 
 })
+
 function PublishWall(content, poster, postId) {
     return new Promise((resolve, reject) => {
 
@@ -1472,14 +1479,14 @@ function PublishWall(content, poster, postId) {
     });
 }
 
-function PublishFacebook(to, content, poster, postId,channel ={}) {
+function PublishFacebook(to, content, poster, postId, channel = {}) {
     return new Promise((resolve, reject) => {
         a++
         console.log('scheduleJob_PublishFacebook_run', to, poster, postId)
         var accessToken = facebookAccount[poster].access_token
         if (to && content && accessToken) {
             var url = to + "/feed?access_token=" + accessToken
-            var url2 ="feed?access_token=" + accessToken
+            var url2 = "feed?access_token=" + accessToken
             var url_page = "385066561884380/feed?access_token=" + CONFIG.publishPageAT
 
 
@@ -1517,9 +1524,9 @@ function PublishFacebook(to, content, poster, postId,channel ={}) {
                             .catch(err => reject(err));
                     }
                 });
-            console.log('channel',channel);
+            console.log('channel', channel);
 
-            if(channel.wall){
+            if (channel.wall) {
                 console.log('wallpost');
 
                 graph.post(url2, params,
@@ -1545,7 +1552,7 @@ function PublishFacebook(to, content, poster, postId,channel ={}) {
                         }
                     });
             }
-            if(channel.page){
+            if (channel.page) {
                 console.log('pagePost');
 
                 graph.post(url_page, params,
