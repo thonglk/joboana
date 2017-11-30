@@ -196,22 +196,25 @@ function init() {
         var noti = snap.val()
         if (!noti) return
         if (!noti.notiId) noti.notiId = keygen()
-        notificationCol.insert(noti, function (err, data) {
-            if (err) {
-                console.log(err)
-            } else {
-                if (noti.time < Date.now() + 60000) {
-                    console.log('noti', a++);
-                    schedule.scheduleJob(noti.time, function () {
-                        startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-                            console.log('array', array)
-                        })
+        notificationCol.findOneAndUpdate({notiId: noti.notiId}, noti, {upsert: true}).then(result => {
+            if (noti.time < Date.now() + 60000) {
+                console.log('noti', a++);
+                schedule.scheduleJob(noti.time, function () {
+                    startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+                        console.log('array', array)
                     })
-                }
-
-                db2.ref('tempNoti').child(snap.key).remove()
+                })
             }
+
+            db2.ref('tempNoti').child(snap.key).remove()
         })
+        // notificationCol.insert(noti, function (err, data) {
+        //     if (err) {
+        //         console.log(err)
+        //     } else {
+        //
+        //     }
+        // })
 
     })
 
