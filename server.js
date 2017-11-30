@@ -29,6 +29,7 @@ var certificate = fs.readFileSync('server.crt', 'utf8');
 
 var credentials = {key: privateKey, cert: certificate};
 
+
 var CONFIG;
 var font = "'HelveticaNeue-Light','Helvetica Neue Light','Helvetica Neue',Helvetica,Arial,'Lucida Grande',sans-serif;"
 var staticData = {
@@ -85,10 +86,6 @@ MongoClient.connect(uri, function (err, db) {
 
 
 // TODO(DEVELOPER): Configure your email transport.
-
-
-var mandrill = require('mandrill-api/mandrill');
-var mandrill_client = new mandrill.Mandrill('o0QnNTrMVDz68x3S55Hb6Q');
 
 
 app.use(express.static(__dirname + '/static'));
@@ -277,7 +274,7 @@ app.get('/sendEmailManrill', (req, res) => {
 })
 app.get('/sendEmailSES', (req, res) => {
     var addressTo = req.param('email');
-    var from = req.param('from')
+    var from = req.param('from');
     var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;">Check it now</div>`
 
     let mailOptions = {
@@ -397,7 +394,6 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
                 .then(() => resolve(notiId))
                 .catch(err => reject(err))
 
-
         });
     });
 }
@@ -411,10 +407,10 @@ app.get('/l/:queryString', function (req, res, next) {
 
     var dataStr = queryString.split(":")
 
-    const notiId = dataStr[0]
-    const p = dataStr[1]
-    const t = dataStr[2]
-    const i = dataStr[3]
+    const notiId = dataStr[0];
+    const p = dataStr[1];
+    const t = dataStr[2];
+    const i = dataStr[3];
 
     var platform = configP[p]
     var type = configT[t]
@@ -618,10 +614,21 @@ function tracking(notiId, platform, url, type = 'open') {
 }
 
 app.get('/messengerRead', function (req, res) {
-    var {notiId} = req.query
-    tracking(notiId, 'messenger', null, 'open').then(results => res.send(results))
-        .catch(err => res.status(500).json(err))
-
+    var {senderID} = req.query
+    var pipeline = {
+        'userData.messengerId': senderID,
+        'time': {$lt: Date.now()},
+        'messenger_open': null
+    }
+    notificationCol.find(pipeline).toArray(notis => {
+        var map = _.map(notis, noti => {
+            notificationCol.findOneAndUpdate({notiId: noti.notiId}, {
+                $set: {messenger_open: Date.now()}
+            }).then(result => console.log({code: 'success', notiId: noti.notiId}))
+            return noti
+        })
+        res.send(map)
+    })
 
 })
 
@@ -1286,10 +1293,11 @@ function startSend(userData, mail, channel, notiId) {
 
         const sendMessengerPromise = new Promise((resolve, reject) => {
             if (userData.messengerId && channel.messenger) {
-                sendMessenger(userData.messengerId, mail, notiId).then(notiId => resolve({
-                    notiId,
-                    messenger: true
-                })).catch(err => reject(err));
+                sendMessenger(userData.messengerId, mail, notiId)
+                    .then(notiId => resolve({
+                        notiId,
+                        messenger: true
+                    })).catch(err => reject(err));
             } else resolve({notiId, messenger: false});
         });
 
@@ -1361,7 +1369,8 @@ function sendMessenger(messengerId, noti, key) {
             })
             .then(() => resolve(key))
             .catch(function (error) {
-                console.log(error);
+
+                reject(error);
             });
 
     });
@@ -1489,7 +1498,6 @@ function PublishFacebook(to, content, poster, postId, channel = {}) {
             var url2 = "feed?access_token=" + accessToken
             var url_page = "385066561884380/feed?access_token=" + CONFIG.publishPageAT
 
-
             var params = {"message": content.text}
 
             if (content.type == 'image') {
@@ -1576,10 +1584,9 @@ function PublishFacebook(to, content, poster, postId, channel = {}) {
 
 
                         }
-                    });
+                    }
+                );
             }
-
-
         }
     });
 }
@@ -1593,7 +1600,6 @@ function PublishPost(userId, text, accessToken) {
             function (err, res) {
                 // returns the post id
                 console.log(res, err);
-
 
             });
     } else {
@@ -1834,6 +1840,8 @@ app.get('/fbNewToken', (req, res, next) => {
 
 // start the server
 http.createServer(app).listen(port);
+https.createServer(credentials, app).listen(443);
+
 console.log('Server started!', port);
 
 var dumping = firebase.initializeApp({
@@ -1970,16 +1978,7 @@ app.get('/dumpling/profile', function (req, res) {
 
 });
 
-var verifier = require('email-verify');
-app.get('/emailVerifier', (req, res) => {
-    const {email, test} = req.query;
-    verifier.verify(email, function (err, info) {
-        if (err) res.send(err);
-        else {
-            res.json(info);
-        }
-    });
-});
+
 String.prototype.simplify = function () {
     return this.toLowerCase()
         .replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a")
