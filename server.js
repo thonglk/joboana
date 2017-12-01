@@ -192,7 +192,7 @@ function init() {
 
     }, 60000);
 
-    db2.ref('tempNoti').on('child_added', function (snap) {
+    db2.ref('tempNoti2').on('child_added', function (snap) {
         var noti = snap.val()
         if (!noti) return
         if (!noti.notiId) noti.notiId = keygen()
