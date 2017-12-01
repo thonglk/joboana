@@ -190,7 +190,7 @@ function init() {
                 })
             });
 
-    }, 60000)
+    }, 60000);
 
     db2.ref('tempNoti').on('child_added', function (snap) {
         var noti = snap.val()
