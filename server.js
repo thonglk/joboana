@@ -196,6 +196,7 @@ function init() {
         var noti = snap.val()
         if (!noti) return
         if (!noti.notiId) noti.notiId = keygen()
+        console.log('noti', noti.notiId);
 
         notificationCol.findOneAndUpdate({notiId: noti.notiId}, {$set: noti}, {upsert: true}).then(result => {
             if (noti.time < Date.now() + 60000) {
@@ -208,6 +209,7 @@ function init() {
             }
             db2.ref('tempNoti2').child(snap.key).remove()
         })
+            .catch(err => console.log(err))
 
     })
 
