@@ -197,21 +197,16 @@ function init() {
         if (!noti) return
         if (!noti.notiId) noti.notiId = keygen()
 
-        notificationCol.insert(noti, function (err, data) {
-            if (err) {
-                console.log(err)
-            } else {
-                if (noti.time < Date.now() + 60000) {
-                    console.log('noti', a++);
-                    schedule.scheduleJob(noti.time, function () {
-                        startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-                            console.log('array', array)
-                        })
+        notificationCol.findOneAndUpdate({notiId: noti.notiId}, {$set: noti}, {upsert: true}).then(result => {
+            if (noti.time < Date.now() + 60000) {
+                console.log('noti', a++);
+                schedule.scheduleJob(noti.time, function () {
+                    startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+                        console.log('array', array)
                     })
-                }
-
-                db2.ref('tempNoti').child(snap.key).remove()
+                })
             }
+            db2.ref('tempNoti').child(snap.key).remove()
         })
 
     })
@@ -2457,6 +2452,16 @@ function importLead() {
     });
 }
 
+
+app.get('/english_word', (req, res) => {
+    const spreadsheetId = '1GEEz_Mjhab3W5YbO2_0rqG44uLEKkWl18nJMpCINkY0';
+    const range = 'word!A1:A';
+
+    getData(auth, spreadsheetId, range)
+        .then(results => req(results))
+        .catch(err => res(err));
+})
+
 app.get('/lead/collection', (req, res, next) => {
     importLead()
         .then(leads => {
@@ -2780,3 +2785,4 @@ app.get('/group/export', (req, res, next) => {
         .catch(err => res.status(500).send(err));
 
 });
+
