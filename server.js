@@ -206,7 +206,7 @@ function init() {
                     })
                 })
             }
-            db2.ref('tempNoti').child(snap.key).remove()
+            db2.ref('tempNoti2').child(snap.key).remove()
         })
 
     })
