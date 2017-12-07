@@ -2,21 +2,23 @@ let fs = require('fs');
 let readline = require('readline');
 let googleAuth = require('google-auth-library');
 
-let SCOPES = ['https://www.googleapis.com/auth/spreadsheets']; //you can add more scopes according to your permission need. But in case you chang the scope, make sure you deleted the ~/.credentials/sheets.googleapis.com-nodejs-quickstart.json file
+let SCOPES = ['https://www.googleapis.com/auth/spreadsheets'+ 'https://www.googleapis.com/auth/forms' + 'https://www.googleapis.com/auth/script.external_request'+'https://www.googleapis.com/auth/drive.scripts']; //you can add more scopes according to your permission need. But in case you chang the scope, make sure you deleted the ~/.credentials/sheets.googleapis.com-nodejs-quickstart.json file
 const TOKEN_DIR = './'; //the directory where we're going to save the token
 const TOKEN_PATH = TOKEN_DIR + 'google_oauth_token.json'; //the file which will contain the token
 
 class Authentication {
-    authenticate(){
-        return new Promise((resolve, reject)=>{
+    authenticate() {
+        return new Promise((resolve, reject) => {
             let credentials = this.getClientSecret();
             let authorizePromise = this.authorize(credentials);
             authorizePromise.then(resolve, reject);
         });
     }
-    getClientSecret(){
+
+    getClientSecret() {
         return require('./google_sheets_api_client_secret.json');
     }
+
     authorize(credentials) {
         var clientSecret = credentials.installed.client_secret;
         var clientId = credentials.installed.client_id;
@@ -24,13 +26,13 @@ class Authentication {
         var auth = new googleAuth();
         var oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
 
-        return new Promise((resolve, reject)=>{
+        return new Promise((resolve, reject) => {
             // Check if we have previously stored a token.
             fs.readFile(TOKEN_PATH, (err, token) => {
                 if (err) {
-                    this.getNewToken(oauth2Client).then((oauth2ClientNew)=>{
+                    this.getNewToken(oauth2Client).then((oauth2ClientNew) => {
                         resolve(oauth2ClientNew);
-                    }, (err)=>{
+                    }, (err) => {
                         reject(err);
                     });
                 } else {
@@ -40,8 +42,9 @@ class Authentication {
             });
         });
     }
+
     getNewToken(oauth2Client, callback) {
-        return new Promise((resolve, reject)=>{
+        return new Promise((resolve, reject) => {
             var authUrl = oauth2Client.generateAuthUrl({
                 access_type: 'offline',
                 scope: SCOPES
@@ -65,6 +68,7 @@ class Authentication {
             });
         });
     }
+
     storeToken(token) {
         try {
             fs.mkdirSync(TOKEN_DIR);

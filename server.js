@@ -2001,31 +2001,13 @@ let authentication = require("./google_auth");
 var auth
 authentication.authenticate().then((auths) => {
     auth = auths;
+    console.log('auth', auth)
 });
 var sheets = google.sheets('v4');
 
-// console.log('google',google)
 
 
-app.get('/getForm', function (req, res) {
-        var {id} = req.query
-        axios.get('https://script.google.com/macros/s/AKfycbxw-WCO3vmmhCDGlju2Shdx3t6R9iuQXsqPSTbOT2c/dev?id=' + id)
-            .then(result => {
 
-
-            })
-            .catch(err => console.log('err', err.response))
-    }
-)
-
-app.post('/postFormChatbot', function (req, res) {
-        var data = req.body;
-        console.log(data);
-        db2.ref('form').child(data.id).update(data)
-            .then(result => res.send('done'))
-            .catch(err => res.status(500).json(err))
-    }
-)
 
 function getData(auth, spreadsheetId, range) {
     return new Promise((resolve, reject) => {
