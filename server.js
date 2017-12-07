@@ -161,57 +161,57 @@ function init() {
     var a = 0,
         b = 0;
 
-
-    setInterval(function () {
-        FacebookPost.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
-            .then(posts => {
-                posts.forEach(function (post) {
-                    console.log('facebook', b++);
-                    let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
-                    schedule.scheduleJob(post.time, function () {
-                        promise = PublishFacebook(post.to, post.content, post.poster, post.postId, post.channel)
-                    });
-                    return promise;
-                })
-
-            })
-
-
-        notificationCol.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
-            .toArray(function (err, notis) {
-                if (err) return
-                notis.forEach(noti => {
-                    console.log('noti', a++);
-                    schedule.scheduleJob(noti.time, function () {
-                        startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-                            console.log('array', array)
-                        })
-                    })
-                })
-            });
-
-    }, 60000);
-
-    db2.ref('tempNoti2').on('child_added', function (snap) {
-        var noti = snap.val()
-        if (!noti) return
-        if (!noti.notiId) noti.notiId = keygen()
-        console.log('noti', noti.notiId);
-
-        notificationCol.findOneAndUpdate({notiId: noti.notiId}, {$set: noti}, {upsert: true}).then(result => {
-            if (noti.time < Date.now() + 60000) {
-                console.log('noti', a++);
-                schedule.scheduleJob(noti.time, function () {
-                    startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-                        console.log('array', array)
-                    })
-                })
-            }
-            db2.ref('tempNoti2').child(snap.key).remove()
-        })
-            .catch(err => console.log(err))
-
-    })
+    //
+    // setInterval(function () {
+    //     FacebookPost.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
+    //         .then(posts => {
+    //             posts.forEach(function (post) {
+    //                 console.log('facebook', b++);
+    //                 let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
+    //                 schedule.scheduleJob(post.time, function () {
+    //                     promise = PublishFacebook(post.to, post.content, post.poster, post.postId, post.channel)
+    //                 });
+    //                 return promise;
+    //             })
+    //
+    //         })
+    //
+    //
+    //     notificationCol.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
+    //         .toArray(function (err, notis) {
+    //             if (err) return
+    //             notis.forEach(noti => {
+    //                 console.log('noti', a++);
+    //                 schedule.scheduleJob(noti.time, function () {
+    //                     startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+    //                         console.log('array', array)
+    //                     })
+    //                 })
+    //             })
+    //         });
+    //
+    // }, 60000);
+    //
+    // db2.ref('tempNoti2').on('child_added', function (snap) {
+    //     var noti = snap.val()
+    //     if (!noti) return
+    //     if (!noti.notiId) noti.notiId = keygen()
+    //     console.log('noti', noti.notiId);
+    //
+    //     notificationCol.findOneAndUpdate({notiId: noti.notiId}, {$set: noti}, {upsert: true}).then(result => {
+    //         if (noti.time < Date.now() + 60000) {
+    //             console.log('noti', a++);
+    //             schedule.scheduleJob(noti.time, function () {
+    //                 startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+    //                     console.log('array', array)
+    //                 })
+    //             })
+    //         }
+    //         db2.ref('tempNoti2').child(snap.key).remove()
+    //     })
+    //         .catch(err => console.log(err))
+    //
+    // })
 
 }
 
@@ -1515,9 +1515,11 @@ function PublishFacebook(to, content, poster, postId, channel = {}) {
 
                         console.log(err.message, to, poster);
 
-                        axios.post(CONFIG.APIURL +'/sendNotificationToAdmin',{title:'Jobo | Tun bị lỗi',
-                            body:`${err.message} \n Poster: ${poster} \n To: https://facebook.com/groups/${to}` })
-                            .then(result=>console.log(result))
+                        axios.post(CONFIG.APIURL + '/sendNotificationToAdmin', {
+                            title: 'Jobo | Tun bị lỗi',
+                            body: `${err.message} \n Poster: ${poster} \n To: https://facebook.com/groups/${to}`
+                        })
+                            .then(result => console.log(result))
 
                         FacebookPost.findOneAndUpdate({postId}, {
                             sent_error: err.message
@@ -2001,6 +2003,28 @@ authentication.authenticate().then((auths) => {
     auth = auths;
 });
 var sheets = google.sheets('v4');
+
+// console.log('google',google)
+
+
+app.get('/getForm', function (req, res) {
+        var {id} = req.query
+        axios.get('https://script.google.com/macros/s/AKfycbxw-WCO3vmmhCDGlju2Shdx3t6R9iuQXsqPSTbOT2c/dev?id=' + id)
+            .then(result => {
+
+
+            })
+            .catch(err => console.log('err', err.response))
+    }
+)
+
+app.post('/postFormChatbot', function (req, res) {
+        var data = req.body
+        console.log(data)
+        db2.ref('form').child(data.id).update(data).then(result => res.send('done'))
+            .catch(err => res.status(500).json(err))
+    }
+)
 
 function getData(auth, spreadsheetId, range) {
     return new Promise((resolve, reject) => {
