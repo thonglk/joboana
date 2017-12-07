@@ -2019,9 +2019,10 @@ app.get('/getForm', function (req, res) {
 )
 
 app.post('/postFormChatbot', function (req, res) {
-        var data = req.body
-        console.log(data)
-        db2.ref('form').child(data.id).update(data).then(result => res.send('done'))
+        var data = req.body;
+        console.log(data);
+        db2.ref('form').child(data.id).update(data)
+            .then(result => res.send('done'))
             .catch(err => res.status(500).json(err))
     }
 )
