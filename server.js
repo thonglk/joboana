@@ -1515,6 +1515,10 @@ function PublishFacebook(to, content, poster, postId, channel = {}) {
 
                         console.log(err.message, to, poster);
 
+                        axios.post(CONFIG.APIURL +'/sendNotificationToAdmin',{title:'Jobo | Tun bị lỗi',
+                            body:`${err.message} \n Poster: ${poster} \n To: https://facebook.com/groups/${to}` })
+                            .then(result=>console.log(result))
+
                         FacebookPost.findOneAndUpdate({postId}, {
                             sent_error: err.message
                         }, {new: true})
@@ -2785,6 +2789,23 @@ app.get('/group/export', (req, res, next) => {
         .then(values => appendData(auth, spreadsheetId, range, values))
         .then(data => res.status(200).json(data))
         .catch(err => res.status(500).send(err));
-
 });
 
+
+app.get('/email/export', (req, res, next) => {
+    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = 'EmailCOL!A2:J';
+
+    axios.get(CONFIG.APIURL + '/config')
+        .then(result => {
+            var groupData = _.toArray(result.data.groupData)
+
+            return Promise.all(groupData.map(group => {
+                return [group.groupId, group.name, group.link, group.area, group.job];
+            }));
+        })
+        .then(values => appendData(auth, spreadsheetId, range, values))
+        .then(data => res.status(200).json(data))
+        .catch(err => res.status(500).send(err));
+
+});
