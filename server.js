@@ -161,57 +161,57 @@ function init() {
     var a = 0,
         b = 0;
 
-    //
-    // setInterval(function () {
-    //     FacebookPost.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
-    //         .then(posts => {
-    //             posts.forEach(function (post) {
-    //                 console.log('facebook', b++);
-    //                 let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
-    //                 schedule.scheduleJob(post.time, function () {
-    //                     promise = PublishFacebook(post.to, post.content, post.poster, post.postId, post.channel)
-    //                 });
-    //                 return promise;
-    //             })
-    //
-    //         })
-    //
-    //
-    //     notificationCol.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
-    //         .toArray(function (err, notis) {
-    //             if (err) return
-    //             notis.forEach(noti => {
-    //                 console.log('noti', a++);
-    //                 schedule.scheduleJob(noti.time, function () {
-    //                     startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-    //                         console.log('array', array)
-    //                     })
-    //                 })
-    //             })
-    //         });
-    //
-    // }, 60000);
-    //
-    // db2.ref('tempNoti2').on('child_added', function (snap) {
-    //     var noti = snap.val()
-    //     if (!noti) return
-    //     if (!noti.notiId) noti.notiId = keygen()
-    //     console.log('noti', noti.notiId);
-    //
-    //     notificationCol.findOneAndUpdate({notiId: noti.notiId}, {$set: noti}, {upsert: true}).then(result => {
-    //         if (noti.time < Date.now() + 60000) {
-    //             console.log('noti', a++);
-    //             schedule.scheduleJob(noti.time, function () {
-    //                 startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-    //                     console.log('array', array)
-    //                 })
-    //             })
-    //         }
-    //         db2.ref('tempNoti2').child(snap.key).remove()
-    //     })
-    //         .catch(err => console.log(err))
-    //
-    // })
+
+    setInterval(function () {
+        FacebookPost.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
+            .then(posts => {
+                posts.forEach(function (post) {
+                    console.log('facebook', b++);
+                    let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
+                    schedule.scheduleJob(post.time, function () {
+                        promise = PublishFacebook(post.to, post.content, post.poster, post.postId, post.channel)
+                    });
+                    return promise;
+                })
+
+            })
+
+
+        notificationCol.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
+            .toArray(function (err, notis) {
+                if (err) return
+                notis.forEach(noti => {
+                    console.log('noti', a++);
+                    schedule.scheduleJob(noti.time, function () {
+                        startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+                            console.log('array', array)
+                        })
+                    })
+                })
+            });
+
+    }, 60000);
+
+    db2.ref('tempNoti2').on('child_added', function (snap) {
+        var noti = snap.val()
+        if (!noti) return
+        if (!noti.notiId) noti.notiId = keygen()
+        console.log('noti', noti.notiId);
+
+        notificationCol.findOneAndUpdate({notiId: noti.notiId}, {$set: noti}, {upsert: true}).then(result => {
+            if (noti.time < Date.now() + 60000) {
+                console.log('noti', a++);
+                schedule.scheduleJob(noti.time, function () {
+                    startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
+                        console.log('array', array)
+                    })
+                })
+            }
+            db2.ref('tempNoti2').child(snap.key).remove()
+        })
+            .catch(err => console.log(err))
+
+    })
 
 }
 
