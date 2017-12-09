@@ -1515,12 +1515,6 @@ function PublishFacebook(to, content, poster, postId, channel = {}) {
 
                         console.log(err.message, to, poster);
 
-                        axios.post(CONFIG.APIURL + '/sendNotificationToAdmin', {
-                            title: 'Jobo | Tun bị lỗi',
-                            body: `${err.message} \n Poster: ${poster} \n To: https://facebook.com/groups/${to}`
-                        })
-                            .then(result => console.log(result))
-
                         FacebookPost.findOneAndUpdate({postId}, {
                             sent_error: err.message
                         }, {new: true})
