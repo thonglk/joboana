@@ -161,7 +161,6 @@ function init() {
     var a = 0,
         b = 0;
 
-
     setInterval(function () {
         FacebookPost.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
             .then(posts => {
@@ -208,68 +207,12 @@ function init() {
                 })
             }
             db2.ref('tempNoti2').child(snap.key).remove()
-        })
-            .catch(err => console.log(err))
-
+        }).catch(err => console.log(err))
     })
 
 }
 
 
-app.get('/sendEmailManrill', (req, res) => {
-    var {email} = req.query
-    var message = {
-        "html": "<p>This is a email</p>",
-        "subject": "New email test |" + new Date(),
-        "from_email": "hello@jobo.asia",
-        "from_name": "Jobo",
-        "to": [{
-            "email": email,
-            "name": "Thông",
-            "type": "to"
-        }],
-        "headers": {
-            "Reply-To": "contact@joboapp.com"
-        },
-        "important": false,
-        "track_opens": true,
-        "track_clicks": true,
-        "auto_text": null,
-        "auto_html": null,
-        "inline_css": null,
-        "url_strip_qs": null,
-        "preserve_recipients": null,
-        "view_content_link": null,
-        "bcc_address": "message.bcc_address@example.com",
-        "tracking_domain": null,
-        "signing_domain": null,
-        "return_path_domain": null,
-        "merge": true
-    };
-    var async = false;
-    var ip_pool = "Main Pool";
-    var send_at = new Date();
-
-    mandrill_client.messages.send({"message": message}, function (result) {
-        console.log(result);
-        res.send(result)
-        /*
-        [{
-                "email": "recipient.email@example.com",
-                "status": "sent",
-                "reject_reason": "hard-bounce",
-                "_id": "abc123abc123abc123abc123abc123"
-            }]
-        */
-    }, function (e) {
-        // Mandrill returns the error as an object with name and message keys
-        console.log('A mandrill error occurred: ' + e.name + ' - ' + e.message);
-        res.send(e)
-
-        // A mandrill error occurred: Unknown_Subaccount - No subaccount exists with the id 'customer-123'
-    });
-
-})
 app.get('/sendEmailSES', (req, res) => {
     var addressTo = req.param('email');
     var from = req.param('from');
@@ -364,9 +307,9 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
         var idEmail = mailSplit[0];
 
         console.log('idEmail', idEmail)
-        if (mailOptions.from.address == 'contact@jobo.asia') var mailTransport = nodemailer.createTransport(ses({
-            accessKeyId: 'AKIAIJJTKSHNDOBZWVEA',
-            secretAccessKey: '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',
+        if (mailOptions.from.address == 'hello@jobo.asia') var mailTransport = nodemailer.createTransport(ses({
+            accessKeyId: 'AKIAJ7UHSMZ6NU6IQHSA',
+            secretAccessKey: 'AjvtCd9NnCnAuB/RqT4C0acODEcg2qisszw2qboZIz2T',
             region: 'us-west-2'
         }))
         else mailTransport = nodemailer.createTransport({
