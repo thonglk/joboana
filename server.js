@@ -2047,7 +2047,7 @@ function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG
                 reject(err);
             }
             var rows = response.values;
-            resolve({data:getDataToObj(rows),spreadsheetId,range});
+            resolve({spreadsheetId,range,data:getDataToObj(rows)});
         });
     });
 }
