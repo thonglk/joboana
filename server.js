@@ -156,6 +156,7 @@ function init() {
         facebookAccount = CONFIG.facebookAccount;
         graph.setAccessToken(CONFIG.default_accessToken);
     })
+    //test
 
 
     var a = 0,
@@ -199,7 +200,7 @@ function init() {
 
         notificationCol.findOneAndUpdate({notiId: noti.notiId}, {$set: noti}, {upsert: true}).then(result => {
             if (noti.time < Date.now() + 60000) {
-                console.log('noti', a++);
+                console.log('noti sending now', a++);
                 schedule.scheduleJob(noti.time, function () {
                     startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
                         console.log('array', array)
@@ -282,13 +283,89 @@ app.get('/sendEmailZoho', (req, res) => {
     });
 
 })
+app.get('/sendEmailGmail', (req, res) => {
+    var addressTo = req.param('email');
+    var from = req.param('from')
+    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(Date.now(), 'https://jobo.asia/file/jobo.png', 'o', 'l')}"/>Check it now</div>`;
+
+    let mailOptions = {
+        from: {
+            name: 'Jobo | Tìm việc nhanh',
+            address: from || CONFIG.email
+        },
+        to: addressTo, // list of receivers
+        subject: 'Test Email Zoho |' + Date.now(), // Subject line
+        html: emailMarkup, // html body
+        // text: 'Hello world?', // plain text body
+    }
+
+    var mailSplit = from.split('@')
+    var idEmail = mailSplit[0]
+    console.log('idEmail', idEmail + ' ' + from)
+    var gmailTransport = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // true for 465, false for other ports
+        auth: {
+            user: 'thonglk.mac@gmail.com', // generated ethereal user
+            pass: 'usvhsadawnsbbnys'  // generated ethereal password
+        }
+    });
+
+    // send mail with defined transport object
+    gmailTransport.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log('Error sent email', addressTo)
+            res.status(500).json(error);
+        }
+        res.json('Email sent:' + ' ' + addressTo);
+
+    });
+
+})
+
+app.get('/testSend', (req, res) => {
+    var notitest = {
+        "userData": {
+            "admin": true,
+            "createdAt": 1503224487723.0,
+            "currentStore": "-KpkMo8NqK8EMeKlxTUi",
+            "email": "thonglk@jobo.asia",
+            "messengerId": "1226124860830528",
+            "mobileToken": "eKfRyduIQDU:APA91bGofXHLJ2kfnSLbQTIH3AQzcVYhRDMUbHcYcVkasSO_kfFINNQ5bK0ThqJQnH-kS0C1PoPXqnCmZzNqeq2vujHjFwbRvWes14cWniOhqDMDBZHmWGY7STesjOJppVLMt5kRybnk",
+            "name": "Khánh Thông",
+            "package": "premium",
+            "phone": "0968269860",
+            "type": 1,
+            "userId": "thonglk",
+            "webToken": "fd7at9RvjMk:APA91bGtv-HAA6GRpPK0dQZH5RdEgizj1hWjFhVaRcvP2LiackhKcYIrf-eYy4y8UCJRNQBStFR8BElS62bg0xsMuoaWMX_JQwQk59rxkxCHb5VsApTeZcaN72fyHxPKf8LaQxO-SpNn"
+        },
+        "mail": {
+            "title": "thông",
+            "body": "haha",
+            "description1": "huhu",
+            "linktoaction": "https://google.com",
+            "calltoaction": "Hihi"
+        },
+        "notiId": "HneEOS",
+        "channel": {
+            "web": true,
+            "letter": true,
+            "mobile": true,
+            "messenger": true
+        }
+    }
+    startSend(notitest.userData, notitest.mail, notitest.channel, notitest.notiId)
+        .then(array => res.send(array))
+        .catch(err => res.status(500).json(err))
+})
 
 var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
     return new Promise((resolve, reject) => {
 
         let mailOptions = {
             from: {
-                name: mail.name || 'Jobo | Tìm việc nhanh',
+                name: mail.name || 'Lê Khánh Thông',
                 address: mail.from || CONFIG.email
             },
             bcc: mail.bcc,
@@ -303,16 +380,26 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
             }]
         }
 
-        var mailSplit = mail.from.split('@')
+        var mailSplit = mailOptions.from.address.split('@')
         var idEmail = mailSplit[0];
 
         console.log('idEmail', idEmail)
-        if (mailOptions.from.address == 'hello@jobo.asia') var mailTransport = nodemailer.createTransport(ses({
-            accessKeyId: 'AKIAJ7UHSMZ6NU6IQHSA',
-            secretAccessKey: 'AjvtCd9NnCnAuB/RqT4C0acODEcg2qisszw2qboZIz2T',
-            region: 'us-west-2'
-        }))
-        else mailTransport = nodemailer.createTransport({
+        // if (mailOptions.from.address == 'hello@jobo.asia') var mailTransport = nodemailer.createTransport(ses({
+        //     accessKeyId: 'AKIAJ7UHSMZ6NU6IQHSA',
+        //     secretAccessKey: 'AjvtCd9NnCnAuB/RqT4C0acODEcg2qisszw2qboZIz2T',
+        //     region: 'us-west-2'
+        // }))
+
+        var gmailTransport = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false, // true for 465, false for other ports
+            auth: {
+                user: 'thonglk.mac@gmail.com', // generated ethereal user
+                pass: 'usvhsadawnsbbnys'  // generated ethereal password
+            }
+        });
+        var zohoTransport = nodemailer.createTransport({
             host: 'smtp.zoho.com',
             port: 587,
             secure: false, // true for 465, false for other ports
@@ -321,6 +408,8 @@ var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
                 pass: CONFIG.zoho_email[idEmail].password  // generated ethereal password
             }
         });
+        if (mailOptions.from.address == 'thonglk.mac@gmail.com') var mailTransport = gmailTransport
+        else mailTransport = zohoTransport
 
         // send mail with defined transport object
         mailTransport.sendMail(mailOptions, (error, info) => {
@@ -1207,7 +1296,7 @@ function startSend(userData, mail, channel, notiId) {
                     }))
                     .catch(err => {
                         console.log('err', err);
-                        resolve({notiId, letter: false})
+                        resolve({notiId, letter: false, err})
                     });
             } else resolve({notiId, letter: false});
         });
@@ -1217,7 +1306,7 @@ function startSend(userData, mail, channel, notiId) {
                 sendNotificationToGivenUser(userData.webToken, mail, 'web', notiId).then(notiId => resolve({
                     notiId,
                     web: true
-                })).catch(err => resolve({notiId, web: false}));
+                })).catch(err => resolve({notiId, web: false, err}));
             } else resolve({notiId, web: false});
 
         });
@@ -1227,18 +1316,19 @@ function startSend(userData, mail, channel, notiId) {
                 sendNotificationToGivenUser(userData.mobileToken, mail, 'app', notiId).then(notiId => resolve({
                     notiId,
                     mobile: true
-                })).catch(err => resolve({notiId, mobile: false}));
+                })).catch(err => resolve({notiId, mobile: false, err}));
             } else resolve({notiId, mobile: false});
 
         });
 
         const sendMessengerPromise = new Promise((resolve, reject) => {
             if (userData.messengerId && channel.messenger) {
-                sendMessenger(userData.messengerId, mail, notiId)
+                sendMessenger(userData.messengerId, mail, notiId, userData.pageID)
                     .then(notiId => resolve({
                         notiId,
                         messenger: true
-                    })).catch(err => reject(err));
+                    }))
+                    .catch(err => resolve({notiId, messenger: false, err}));
             } else resolve({notiId, messenger: false});
         });
 
@@ -1267,7 +1357,7 @@ function getPaginatedItems(items, page) {
     };
 }
 
-function sendMessenger(messengerId, noti, key) {
+function sendMessenger(messengerId, noti, key, pageID) {
     return new Promise((resolve, reject) => {
         var url = 'https://jobo-chat.herokuapp.com/noti';
         var text = `${(noti.title) ? noti.title : ' '}\n ${noti.body}`
@@ -1296,8 +1386,10 @@ function sendMessenger(messengerId, noti, key) {
 
         var param = {
             message,
-            recipientId: messengerId
+            recipientId: messengerId,
+
         };
+        if (pageID) param.pageID = pageID
 
         axios.post(url, param)
             .then(function () {
@@ -1942,11 +2034,7 @@ authentication.authenticate().then((auths) => {
 });
 var sheets = google.sheets('v4');
 
-
-
-
-
-function getData(auth, spreadsheetId, range) {
+function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk', range = 'New_Profile') {
     return new Promise((resolve, reject) => {
         var sheets = google.sheets('v4');
         sheets.spreadsheets.values.get({
@@ -1959,10 +2047,28 @@ function getData(auth, spreadsheetId, range) {
                 reject(err);
             }
             var rows = response.values;
-            resolve(rows);
+            resolve({data:getDataToObj(rows),spreadsheetId,range});
         });
     });
 }
+
+function getDataToObj(rows) {
+    var firstRow = rows[0]
+    rows.shift()
+
+    var array = rows.map(row => {
+        var newRow = {}
+        for (var i in firstRow) {
+            newRow[firstRow[i]] = row[i]
+        }
+        return newRow
+    })
+
+    return array
+
+}
+
+app.get('/getData', ({query}, res) => getData(auth, query.spreadsheetId, query.range).then(rows => res.send(rows)).catch(err => res.status(500).json(err)))
 
 function clearData(auth, spreadsheetId, range) {
     return new Promise((resolve, reject) => {
