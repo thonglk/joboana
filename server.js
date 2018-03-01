@@ -2034,7 +2034,7 @@ authentication.authenticate().then((auths) => {
 });
 var sheets = google.sheets('v4');
 
-function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk', range = 'New_Profile') {
+function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk', range = 'restua', query) {
     return new Promise((resolve, reject) => {
         var sheets = google.sheets('v4');
         sheets.spreadsheets.values.get({
@@ -2047,14 +2047,41 @@ function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG
                 reject(err);
             }
             var rows = response.values;
-            resolve({spreadsheetId,range,data:getDataToObj(rows)});
+            resolve({spreadsheetId, range, data: getDataToObj(rows, query)});
         });
     });
 }
 
-function getDataToObj(rows) {
+const vietnameseDecode = (str) => {
+    console.log('vietnameseDecode', str)
+    if (str) {
+        str = str.toLowerCase();
+        str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+        str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+        str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+        str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+        str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+        str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+        str = str.replace(/đ/g, "d");
+        str = str.replace(/!|@|%|\^|\*|\(|\)|\+|\=|\<|\>|\?|\/|,|\.|\:|\;|\'| |\"|\&|\#|\[|\]|~|$|_/g, "-");
+        /* tìm và thay thế các kí tự đặc biệt trong chuỗi sang kí tự - */
+        str = str.replace(/-+-/g, "-"); //thay thế 2- thành 1-
+        str = str.replace(/^\-+|\-+$/g, "");
+        //cắt bỏ ký tự - ở đầu và cuối chuỗi
+        return str;
+    }
+
+}
+
+function getDataToObj(rows, query) {
     var firstRow = rows[0]
+    var queryVi = vietnameseDecode(query)
     rows.shift()
+
+    if (query) rows = _.filter(rows, row => {
+        if (vietnameseDecode(JSON.stringify(row)).match(queryVi)) return true
+        else return false
+    })
 
     var array = rows.map(row => {
         var newRow = {}
@@ -2068,7 +2095,7 @@ function getDataToObj(rows) {
 
 }
 
-app.get('/getData', ({query}, res) => getData(auth, query.spreadsheetId, query.range).then(rows => res.send(rows)).catch(err => res.status(500).json(err)))
+app.get('/getData', ({query}, res) => getData(auth, query.spreadsheetId, query.range, query.search).then(rows => res.send(rows)).catch(err => res.status(500).json(err)))
 
 function clearData(auth, spreadsheetId, range) {
     return new Promise((resolve, reject) => {
