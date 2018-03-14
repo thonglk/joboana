@@ -2,7 +2,20 @@ let fs = require('fs');
 let readline = require('readline');
 let googleAuth = require('google-auth-library');
 
-let SCOPES = ['https://www.googleapis.com/auth/spreadsheets'+ 'https://www.googleapis.com/auth/forms' + 'https://www.googleapis.com/auth/script.external_request'+'https://www.googleapis.com/auth/drive.scripts']; //you can add more scopes according to your permission need. But in case you chang the scope, make sure you deleted the ~/.credentials/sheets.googleapis.com-nodejs-quickstart.json file
+let SCOPES = [];
+SCOPES[0] ='https://www.googleapis.com/auth/spreadsheets';
+SCOPES[1] ='https://www.googleapis.com/auth/forms';
+SCOPES[2] ='https://www.googleapis.com/auth/script.external_request';
+SCOPES[3] ='https://www.googleapis.com/auth/drive.scripts';
+SCOPES[4] ='https://www.googleapis.com/auth/drive.metadata.readonly';
+SCOPES[5] ='https://www.googleapis.com/auth/drive';
+SCOPES[6] ='https://www.googleapis.com/auth/drive.appdata';
+SCOPES[7] ='https://www.googleapis.com/auth/drive.apps.readonly';
+SCOPES[8] ='https://www.googleapis.com/auth/drive.photos.readonly';
+SCOPES[8] ='https://www.googleapis.com/auth/drive.file';
+
+
+
 const TOKEN_DIR = './'; //the directory where we're going to save the token
 const TOKEN_PATH = TOKEN_DIR + 'google_oauth_token.json'; //the file which will contain the token
 
@@ -38,6 +51,7 @@ class Authentication {
                 } else {
                     oauth2Client.credentials = JSON.parse(token);
                     resolve(oauth2Client);
+
                 }
             });
         });
