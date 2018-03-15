@@ -87,9 +87,8 @@ MongoClient.connect(uri, function (err, db) {
 
 // TODO(DEVELOPER): Configure your email transport.
 
-
-app.use(express.static(__dirname + '/static'));
 app.use(cors());
+app.use(express.static(__dirname + '/static'));
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
 app.use(function (req, res, next) {
@@ -2161,7 +2160,7 @@ function saveDataToSheet(pageID, spreadsheetId) {
     })
 }
 
-app.get('/saveDataToSheet', ({query}, res) => saveDataToSheet(query.pageID, query.sheetID).then(result => res.send(result)).catch(err => res.status(500).json(err)))
+app.get('/saveDataToSheet', ({query}, res) => saveDataToSheet(query.pageID, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
 
 function listFiles() {
