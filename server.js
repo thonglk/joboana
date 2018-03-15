@@ -1587,7 +1587,6 @@ app.get('/getData', ({query}, res) => getData(auth, query.spreadsheetId, query.r
 function clearData(auth, spreadsheetId, range) {
     return new Promise((resolve, reject) => {
         sheets.spreadsheets.values.clear({
-            auth: auth,
             spreadsheetId,
             range
         }, (err, response) => {
@@ -1604,9 +1603,7 @@ function clearData(auth, spreadsheetId, range) {
 
 function appendData(auth, spreadsheetId, range, values) {
     return new Promise((resolve, reject) => {
-        var sheets = google.sheets('v4');
         sheets.spreadsheets.values.append({
-            auth: auth,
             spreadsheetId,
             range, //Change Sheet1 if your worksheet's name is something else
             valueInputOption: "USER_ENTERED",
