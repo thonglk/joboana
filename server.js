@@ -1502,43 +1502,6 @@ String.prototype.simplify = function () {
         .replace(/^\-+|\-+$/g, "")
         .replace(/\s/g, '-');
 };
-
-let google = require('googleapis');
-let authentication = require("./google_auth");
-var auth;
-var drive;
-var sheets;
-
-authentication.authenticate().then(auth => {
-    console.log('auth', auth)
-    drive = google.drive({
-        version: 'v2',
-        auth: auth
-    });
-    sheets = google.sheets({
-        version: 'v4',
-        auth: auth
-    });
-});
-
-function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk', range = 'restua', query) {
-    return new Promise((resolve, reject) => {
-        var sheets = google.sheets('v4');
-        sheets.spreadsheets.values.get({
-            auth: auth,
-            spreadsheetId,
-            range, //Change Sheet1 if your worksheet's name is something else
-        }, (err, response) => {
-            if (err) {
-                console.log('The API returned an error: ' + err);
-                reject(err);
-            }
-            var rows = response.values;
-            resolve({spreadsheetId, range, query, data: getDataToObj(rows, query)});
-        });
-    });
-}
-
 const vietnameseDecode = (str) => {
     console.log('vietnameseDecode', str)
     if (str) {
@@ -1559,6 +1522,42 @@ const vietnameseDecode = (str) => {
     }
 
 }
+
+
+let google = require('googleapis');
+let authentication = require("./google_auth");
+var auth;
+var drive;
+var sheets;
+
+authentication.authenticate().then(auth => {
+    console.log('auth', auth)
+    drive = google.drive({
+        version: 'v2',
+        auth: auth
+    });
+    sheets = google.sheets({
+        version: 'v4',
+        auth: auth
+    });
+});
+
+function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk', range = 'reataurant', query) {
+    return new Promise((resolve, reject) => {
+        sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range, //Change Sheet1 if your worksheet's name is something else
+        }, (err, response) => {
+            if (err) {
+                console.log('The API returned an error: ' + err);
+                reject(err);
+            }
+            var rows = response.values;
+            resolve({spreadsheetId, range, query, data: getDataToObj(rows, query)});
+        });
+    });
+}
+
 
 function getDataToObj(rows, query) {
     var firstRow = rows[0]
@@ -2002,12 +2001,6 @@ function importStore({storeId = '=Row()-3', type, incharge = 'thaohp', storeName
 app.use('/store', storeRouter);
 
 
-app.get('/lead/export', (req, res, next) => {
-    exportLead()
-        .then(data => res.status(200).json(data))
-        .catch(err => res.status(500).send(err));
-});
-
 function importLead() {
     return new Promise((resolve, reject) => {
         const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
@@ -2020,14 +2013,6 @@ function importLead() {
 }
 
 
-app.get('/english_word', (req, res) => {
-    const spreadsheetId = '1GEEz_Mjhab3W5YbO2_0rqG44uLEKkWl18nJMpCINkY0';
-    const range = 'word!A1:A';
-
-    getData(auth, spreadsheetId, range)
-        .then(results => req(results))
-        .catch(err => res(err));
-})
 
 app.get('/lead/collection', (req, res, next) => {
     importLead()
