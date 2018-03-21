@@ -2126,11 +2126,11 @@ function saveDataToSheet(pageID, spreadsheetId) {
                 return data.createdAt
             } else return 0
         })
-        var firstRow = ['createdAt', 'first_name', 'last_name', 'full_name', 'gender', 'locale', 'mID', 'fbID', 'link', 'lastActive', 'nlp.phone_number', 'nlp.email']
+        var firstRow = ['createdAt', 'first_name', 'last_name', 'full_name', 'gender', 'locale', 'mID', 'fbID', 'link', 'lastActive', 'nlp.phone_number', 'nlp.email','sent_error']
 
         var map = data.map(per => {
             per = flat(per)
-            return [new Date(per.createdAt), per.first_name, per.last_name, per.full_name, per.gender, per.locale, per.id, per.fbId, `https://fb.com${per.link}`, new Date(per.lastActive), per['nlp.phone_number'], per['nlp.email']]
+            return [new Date(per.createdAt), per.first_name, per.last_name, per.full_name, per.gender, per.locale, per.id, per.fbId, `https://fb.com${per.link}`, new Date(per.lastActive), per['nlp.phone_number'], per['nlp.email'],per.sent_error]
         })
         map.splice(0, 0, firstRow);
 
@@ -2202,3 +2202,4 @@ function copyFile(originFileId, copyTitle) {
 }
 
 app.get('/copyFile', ({query}, res) => copyFile(query.id, query.name).then(result => res.send(result)).catch(err => res.status(500).json(err)))
+
