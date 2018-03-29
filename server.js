@@ -1589,13 +1589,11 @@ function clearData(auth, spreadsheetId, range) {
             spreadsheetId,
             range
         }, (err, response) => {
-            if (err) {
-                console.log('The API returned an error: ' + err);
-                reject(err);
-            } else {
-                console.log("Clear");
-                resolve(response);
-            }
+            if (err) reject(err);
+
+            resolve(response);
+
+
         });
     });
 }
@@ -1623,9 +1621,8 @@ function appendData(auth, spreadsheetId, range, values) {
 
 function addSheet(auth, spreadsheetUrl, title, sheets) {
     return new Promise((resolve, reject) => {
-        var _sheets = google.sheets('v4');
-        _sheets.spreadsheets.create({
-            auth: auth,
+
+        sheets.spreadsheets.create({
             resource: {
                 sheets,
                 properties: {
@@ -1645,275 +1642,10 @@ function addSheet(auth, spreadsheetUrl, title, sheets) {
 }
 
 
-app.get('/fbReports', (req, res, next) => {
-    FacebookPost.find({id: {$ne: null}})
-        .then(posts => {
-            return Promise.all(posts.map(post => {
-                const url = 'https://www.facebook.com';
-                let checksArr = [];
-
-                if (_.isEmpty(post.checks)) checksArr = ["", "", "", "", "", "", "", ""];
-                else {
-                    const comments = post.checks[0].comments ? post.checks[0].comments : "";
-                    const at = post.checks[0].at ? post.checks[0].at : "";
-                    const err = post.checks[0].error ? post.checks[0].error.message : null;
-                    const reactions = post.checks[0].reactions ? post.checks[0].reactions : {};
-
-                    if (err) checksArr = [err, "", "", "", "", "", "", new Date(at).toLocaleString()];
-                    else checksArr = [comments, reactions.angry, reactions.sad, reactions.wow, reactions.love, reactions.like, reactions.haha, new Date(at).toLocaleString()];
-                }
-
-                return [post.postId, `${url}/${post.id}`, post.poster, post.storeId, post.jobId, `${url}/groups/${post.to}`, new Date(post.sent).toLocaleString(), post.sent_error, post.content.text, post.content.link, post.content.image, ...checksArr, post._id, post.createdAt, post.updatedAt, new Date(post.time).toLocaleString()];
-            }));
-        })
-        .then(posts => {
-            const values = [];
-            const head_1 = ["postId", "url", "poster", "storeId", "jobId", "group", "sent at", "sent_error", "content", "", "", "checks", "", "", "", "", "", "", "", "_id", "createdAt", "updatedAt", "time"];
-            const head_2 = ["", "", "", "", "", "", "", "", "text", "link", "image", "comments", "reactions", "at", "", "", "", ""];
-            const head_3 = ["", "", "", "", "", "", "", "", "", "", "", "", "angry", "sad", "wow", "love", "like", "haha", "", "", "", "", ""];
-            values.push(head_1, head_2, head_3);
-            values.push(...posts);
-            const spreadsheetId = '1UhQOhor7IbcgJO-O-2Qr8pYedif360V6D4od970673E';
-            const range = 'facebook_post!A1:B';
-            clearData(auth, spreadsheetId, range);
-            appendData(auth, spreadsheetId, range, values);
-            res.json('done'); //W
-        })
-        .catch(err => res.send(err));
-});
 
 
-const profileRouter = express.Router({mergeParams: true});
 
-app.route('/profile/export')
-    .get((req, res, next) => {
 
-        var query = req.query
-        query.all = true
-        exportProfile(query)
-            .then(data => res.json(data))
-            .catch(err => res.send(`Err: ${JSON.stringify(err)}`));
-    });
-app.route('/profile/import')
-    .post((req, res, next) => {
-        const {userId, createdAt, name, school, address, avatar, birth, weight, working_type, time, industry, description, expect_distance, expect_salary, experience, figure, height, job, languages, videourl, photo, note, date} = req.body;
-        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-        const range = 'profileCOL!A3:B';
-        importProfile({
-            userId,
-            createdAt,
-            name,
-            school,
-            address,
-            avatar,
-            birth,
-            weight,
-            working_type,
-            time,
-            industry,
-            description,
-            expect_distance,
-            expect_salary,
-            experience,
-            figure,
-            height,
-            job,
-            languages,
-            videourl,
-            photo,
-            note,
-            date
-        })
-            .then(values => appendData(auth, spreadsheetId, range, values))
-            .then(result => res.status(200).json(result))
-            .catch(err => res.status(500).send(err));
-    });
-
-function exportProfile(query) {
-    return new Promise((resolve, reject) => {
-
-        axios.get(CONFIG.APIURL + '/api/users', {params: query})
-            .then(result => {
-                console.log('result.data', result.data.length)
-                return Promise.resolve(result.data)
-            })
-            .then(profiles => {
-                return Promise.resolve(profiles.map(profile => {
-                    const userId = `https://jobo.asia/view/profile/${profile.userId}`;
-                    let email = profile.email || '';
-                    let phone = profile.phone || '';
-                    let experience = '';
-                    let time = '';
-                    let languages = '';
-                    let job = '';
-                    let industry = '';
-                    let photo = '';
-                    let note = '';
-                    let date = '';
-
-                    if (profile.photo != '' && profile.photo) {
-                        profile.photo.forEach(url => photo += `${url}\n`);
-                    }
-                    if (profile.industry != '' && profile.industry) {
-                        Object.keys(profile.industry).forEach(key => industry += `${key}, `);
-                    }
-                    if (profile.job != '' && profile.job) {
-                        Object.keys(profile.job).forEach(key => job += `${key}, `);
-                    }
-                    if (profile.experience != '' && profile.experience) {
-                        _.toArray(profile.experience).forEach(_experience => {
-                            experience += `
-            Company: ${_experience.company}
-            Job: ${_experience.job}
-            Start: ${new Date(_experience.start).toLocaleString()}
-            End: ${new Date(_experience.end).toLocaleString()}
-            `;
-                        });
-                    }
-                    if (profile.time != '' && profile.time) {
-                        Object.keys(profile.time).forEach(key => {
-                            time += `${key}, `;
-                        });
-                    }
-                    if (profile.languages != '' && profile.languages) {
-                        Object.keys(profile.languages).forEach(key => {
-                            languages += `${key}, `;
-                        });
-                    }
-                    if (profile.adminNote) {
-                        _.toArray(profile.adminNote).forEach(adminNote => {
-                            note += `\nAdmin: ${adminNote.adminId}\nProfile: https://jobo.asia/view/profile/${adminNote.adminId}\nNote: ${adminNote.note}\n`;
-                            date += `\n\n${new Date(adminNote.date).toLocaleString()}\n\n`;
-                        });
-                    }
-                    return [userId, email, phone, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date];
-                }));
-            })
-            .then(values => {
-                const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-                const range = 'profileCOL!A3:B';
-                clearData(auth, spreadsheetId, range)
-                    .then(res => {
-                        appendData(auth, spreadsheetId, range, values.filter(value => value.length > 0))
-                            .then(response => resolve({response, values}));
-                    });
-            })
-            .catch(err => {
-                console.log('Export profile Err:', err);
-                reject(err);
-            });
-    });
-}
-
-function importProfile(profile) {
-    return new Promise((resolve, reject) => {
-        const userId = `https://jobo.asia/view/profile/${profile.userId}`;
-        let experience = '';
-        let time = '';
-        let languages = '';
-        let job = '';
-        let industry = '';
-        let photo = '';
-        let note = '';
-        let date = '';
-
-        if (profile.photo != '' && profile.photo) {
-            profile.photo.forEach(url => photo += `${url}\n`);
-        }
-        if (profile.industry != '' && profile.industry) {
-            Object.keys(profile.industry).forEach(key => industry += `${key}, `);
-        }
-        if (profile.job != '' && profile.job) {
-            Object.keys(profile.job).forEach(key => job += `${key}, `);
-        }
-        if (profile.experience != '' && profile.experience) {
-            _.toArray(profile.experience).forEach(_experience => {
-                experience += `
-            Company: ${_experience.company}
-            Job: ${_experience.job}
-            Start: ${new Date(_experience.start).toLocaleString()}
-            End: ${new Date(_experience.end).toLocaleString()}
-            `;
-            });
-        }
-        if (profile.time != '' && profile.time) {
-            Object.keys(profile.time).forEach(key => {
-                time += `${key}, `;
-            });
-        }
-        if (profile.languages != '' && profile.languages) {
-            Object.keys(profile.languages).forEach(key => {
-                languages += `${key}, `;
-            });
-        }
-        if (profile.adminNote) {
-            _.toArray(profile.adminNote).forEach(adminNote => {
-                note += `\nAdmin: ${adminNote.adminId}\nProfile: https://jobo.asia/view/profile/${adminNote.adminId}\nNote: ${adminNote.note}\n`;
-                date += `\n\n${new Date(adminNote.date).toLocaleString()}\n\n`;
-            });
-        }
-
-        resolve([
-            [userId, new Date(profile.createdAt).toLocaleString(), profile.name, profile.school, profile.address, profile.avatar, new Date(profile.birth).toLocaleString(), profile.weight, profile.working_type, time, industry, profile.description, profile.expect_distance, profile.expect_salary, experience, profile.figure, profile.height, job, languages, profile.videourl, photo, note, date]
-        ]);
-    });
-}
-
-profileRouter.route('/collection')
-    .get((req, res, next) => {
-        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-        const range = 'New_Profile!A2:E';
-        getData(auth, spreadsheetId, range)
-            .then(rows => {
-                return Promise.all(rows.map(row => {
-                    const name = row[0];
-                    const description = row[1];
-                    const phone = row[2];
-                    const figure = row[3];
-                    const job = row[4];
-                    const note = row[5];
-                    const ref = row[6];
-                    return importCollectionProfile({name, description, phone, figure, job, note, ref});
-                }));
-            })
-            .then(results => res.status(200).json(results))
-            .catch(err => res.status(500).send(err));
-    });
-
-function importCollectionProfile({name, description, phone, figure, job, note, ref}) {
-    return new Promise((resolve, reject) => {
-        const collectionProfileRef = db.ref('collectionProfile');
-        const jobField = {};
-        job.replace(/\s/g, '').split(',').filter(key => key != '').forEach(key => {
-            jobField[key] = true;
-        });
-        const adminNote = {};
-        const notId = `p${Date.now()}${_.random(0, 9)}`;
-        adminNote[notId] = {
-            adminId: ref || 'hpthao',
-            date: Date.now(),
-            id: notId,
-            note
-        };
-
-        const key = collectionProfileRef.push().key;
-        collectionProfileRef.child(key).update({
-            userId: key,
-            createdAt: Date.now(),
-            name,
-            description,
-            phone,
-            figure,
-            job: jobField,
-            adminNote,
-            ref
-        })
-            .then(() => resolve(true))
-            .catch(err => resolve({name, err}));
-    });
-}
-
-app.use('/profile', profileRouter);
 
 const storeRouter = express.Router({mergeParams: true});
 
@@ -2001,66 +1733,12 @@ function importStore({storeId = '=Row()-3', type, incharge = 'thaohp', storeName
 app.use('/store', storeRouter);
 
 
-function importLead() {
-    return new Promise((resolve, reject) => {
-        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-        const range = 'New_LeadCOL!A2:L';
-
-        getData(auth, spreadsheetId, range)
-            .then(results => resolve(results))
-            .catch(err => reject(err));
-    });
-}
 
 
 
-app.get('/lead/collection', (req, res, next) => {
-    importLead()
-        .then(leads => {
-            return Promise.all(leads.map(lead => {
-                var data = {
-                    storeId: lead[2].simplify(),
-                    userId: lead[1],
-                    storeName: lead[2],
-                    address: lead[3],
-                    name: lead[4],
-                    phone: lead[5],
-                    email: lead[6],
-                    job: lead[7],
-                    industry: lead[8],
-                    ref: lead[9],
-                };
-                leadCol.findOne({storeId: data.storeId}, (err, result) => {
-                    if (err) return {status: 'err', err};
-                    else {
-                        if (!result) {
-                            leadCol.insertOne(data);
-                            return {status: 'new', storeId: data.storeId};
-                        } else {
-                            leadCol.updateOne({
-                                _id: result._id
-                            }, data);
-                        }
-                    }
-                })
-
-            }));
-        })
-        .then(results => res.status(200).json(results))
-        .catch(err => {
-            console.log(err);
-            res.status(500).send(err);
-        });
-});
-
-app.get('/lead/import', (req, res) => {
-    importLead()
-        .then(leads => res.status(200).json(leads))
-        .catch(err => res.status(500).send(err));
-});
-app.get('/clearData', (req, res) => {
-    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-    const range = 'LeadCOL!A2:L';
+app.get('/clearData', ({query}, res) => {
+    const spreadsheetId = query.sheetId || '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
+    const range = query.range || 'LeadCOL!A2:L';
 
     clearData(auth, spreadsheetId, range)
         .then(values => res.send(values))
