@@ -1372,7 +1372,7 @@ function redeemToken(redeemCode, redeem) {
 function debugToken(longLiveToken, key, token) {
     return new Promise((resolve, reject) => {
         const appToken = '295208480879128|pavmPhKnN9VWZXLC6TdxLxoYFiY'
-        const url = `https://graph.facebook.com/debug_token?input_token=${longLiveToken}&access_token=${appToken}`;
+        const url = `https://graph.facebook.com/debug_token?input_token=${longLiveToken}&access_token=295208480879128|pavmPhKnN9VWZXLC6TdxLxoYFiY`;
 
         axios.get(url)
             .then(res => {
@@ -1794,9 +1794,9 @@ app.get('/like/export', (req, res, next) => {
 });
 
 
-function saveDataToSheet(pageID, spreadsheetId) {
+function saveDataToSheet(pageID, spreadsheetId,range = 'users') {
     return new Promise((resolve, reject) => {
-        var range = 'users'
+
 
         var where = _.where(DATA.account, {pageID})
         var data = _.sortBy(where, function (data) {
@@ -1819,6 +1819,32 @@ function saveDataToSheet(pageID, spreadsheetId) {
 
     })
 }
+
+function saveData(data, spreadsheetId,range = 'users') {
+    return new Promise((resolve, reject) => {
+
+        var firstRow = []
+
+        var map = data.map(per => {
+            per = flat(per)
+            var valueArray = []
+            for(var i in per){
+                if(JSON.stringify(firstRow).match(i)) firstRow.push(i)
+                valueArray.push(per[i])
+            }
+            return valueArray
+        })
+        map.splice(0, 0, firstRow);
+
+        clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
+            .then(result => resolve(result))
+            .catch(err => reject(err)))
+
+
+    })
+}
+app.post('/saveData', ({body,query}, res) => saveData(body, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
+
 
 app.get('/saveDataToSheet', ({query}, res) => saveDataToSheet(query.pageID, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
