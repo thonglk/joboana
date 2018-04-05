@@ -143,6 +143,7 @@ function saveData(ref, child, data) {
 var DATA = {}
 
 initData('account')
+initData('facebookPage')
 
 
 var secondary = firebase.initializeApp({
@@ -160,7 +161,6 @@ var joboTest = firebase.initializeApp({
 }, 'joboTest');
 
 
-var db = joboTest.database();
 var db2 = joboPxl.database();
 
 
@@ -1591,6 +1591,7 @@ function clearData(auth, spreadsheetId, range) {
         }, (err, response) => {
             if (err) reject(err);
 
+            console.log('crearData')
             resolve(response);
 
 
@@ -1820,30 +1821,45 @@ function saveDataToSheet(pageID, spreadsheetId,range = 'users') {
     })
 }
 
-function saveData(data, spreadsheetId,range = 'users') {
+function saveData(ref, spreadsheetId,range = 'users') {
     return new Promise((resolve, reject) => {
 
-        var firstRow = []
+        db.ref(ref).once('value', function (snap) {
+            var firstRow = ['id']
+            var data = _.toArray(snap.val())
+            var map = data.map(per => {
+                per = flat(per)
+                for(var i in per){
+                    if(JSON.stringify(firstRow).match(i)) {}
+                    else firstRow.push(i)
+                }
+            })
 
-        var map = data.map(per => {
-            per = flat(per)
-            var valueArray = []
-            for(var i in per){
-                if(JSON.stringify(firstRow).match(i)) firstRow.push(i)
-                valueArray.push(per[i])
-            }
-            return valueArray
-        })
-        map.splice(0, 0, firstRow);
+            console.log('firstRow',firstRow)
 
-        clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
-            .then(result => resolve(result))
-            .catch(err => reject(err)))
+            var map = data.map(per => {
+                per = flat(per)
+                var valueArray = []
+                for(var i in per){
+                    var index = _.indexOf(firstRow, i)
+                    valueArray[index] = per[i]
+                }
+                return valueArray
+            })
+
+
+            map.splice(0, 0, firstRow);
+
+            clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
+                .then(result => resolve(result))
+                .catch(err => reject(err)))
+        });
+
 
 
     })
 }
-app.post('/saveData', ({body,query}, res) => saveData(body, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
+app.get('/saveData', ({query}, res) => saveData(query.ref, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
 
 app.get('/saveDataToSheet', ({query}, res) => saveDataToSheet(query.pageID, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
