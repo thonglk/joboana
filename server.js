@@ -1643,11 +1643,6 @@ function addSheet(auth, spreadsheetUrl, title, sheets) {
 }
 
 
-
-
-
-
-
 const storeRouter = express.Router({mergeParams: true});
 
 storeRouter.route('/export')
@@ -1734,9 +1729,6 @@ function importStore({storeId = '=Row()-3', type, incharge = 'thaohp', storeName
 app.use('/store', storeRouter);
 
 
-
-
-
 app.get('/clearData', ({query}, res) => {
     const spreadsheetId = query.sheetId || '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
     const range = query.range || 'LeadCOL!A2:L';
@@ -1795,7 +1787,7 @@ app.get('/like/export', (req, res, next) => {
 });
 
 
-function saveDataToSheet(pageID, spreadsheetId,range = 'users') {
+function saveDataToSheet(pageID, spreadsheetId, range = 'users') {
     return new Promise((resolve, reject) => {
 
 
@@ -1805,12 +1797,40 @@ function saveDataToSheet(pageID, spreadsheetId,range = 'users') {
                 return data.createdAt
             } else return 0
         })
-        var firstRow = ['createdAt', 'first_name', 'last_name', 'full_name', 'gender', 'locale', 'mID', 'fbID', 'link', 'lastActive', 'nlp.phone_number', 'nlp.email','sent_error']
 
-        var map = data.map(per => {
-            per = flat(per)
-            return [new Date(per.createdAt), per.first_name, per.last_name, per.full_name, per.gender, per.locale, per.id, per.fbId, `https://fb.com${per.link}`, new Date(per.lastActive), per['nlp.phone_number'], per['nlp.email'],per.sent_error]
+
+        var pretty = data.map(per => {
+
+            delete per.lastReceive
+            delete per.lastSent
+            return per
+
         })
+
+        var firstRow = ['id']
+
+        var map = pretty.map(per => {
+            per = flat(per)
+            for (var i in per) {
+                if (JSON.stringify(firstRow).match(i)) {
+                }
+                else firstRow.push(i)
+            }
+        })
+
+        console.log('firstRow', firstRow)
+
+        var map = pretty.map(per => {
+            per = flat(per)
+            var valueArray = []
+            for (var i in per) {
+                var index = _.indexOf(firstRow, i)
+                valueArray[index] = per[i]
+            }
+            return valueArray
+        })
+
+
         map.splice(0, 0, firstRow);
 
         clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
@@ -1821,26 +1841,37 @@ function saveDataToSheet(pageID, spreadsheetId,range = 'users') {
     })
 }
 
-function saveData(ref, spreadsheetId,range = 'users') {
+function getDataFromRef(ref) {
     return new Promise((resolve, reject) => {
-
         db.ref(ref).once('value', function (snap) {
-            var firstRow = ['id']
             var data = _.toArray(snap.val())
+            resolve(data)
+        })
+
+    })
+}
+
+function saveDataSheet(ref, spreadsheetId, range = 'users') {
+    return new Promise((resolve, reject) => {
+        getDataFromRef(ref).then(data => {
+
+            var firstRow = ['id']
+
             var map = data.map(per => {
                 per = flat(per)
-                for(var i in per){
-                    if(JSON.stringify(firstRow).match(i)) {}
+                for (var i in per) {
+                    if (JSON.stringify(firstRow).match(i)) {
+                    }
                     else firstRow.push(i)
                 }
             })
 
-            console.log('firstRow',firstRow)
+            console.log('firstRow', firstRow)
 
             var map = data.map(per => {
                 per = flat(per)
                 var valueArray = []
-                for(var i in per){
+                for (var i in per) {
                     var index = _.indexOf(firstRow, i)
                     valueArray[index] = per[i]
                 }
@@ -1853,13 +1884,14 @@ function saveData(ref, spreadsheetId,range = 'users') {
             clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
                 .then(result => resolve(result))
                 .catch(err => reject(err)))
-        });
 
+        })
 
 
     })
 }
-app.get('/saveData', ({query}, res) => saveData(query.ref, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
+
+app.get('/saveData', ({query}, res) => saveDataSheet(query.ref, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
 
 app.get('/saveDataToSheet', ({query}, res) => saveDataToSheet(query.pageID, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
