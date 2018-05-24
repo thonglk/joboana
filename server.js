@@ -1591,7 +1591,7 @@ function clearData(auth, spreadsheetId, range) {
         }, (err, response) => {
             if (err) reject(err);
 
-            console.log('crearData')
+            console.log('clear Data')
             resolve(response);
 
 
@@ -1738,7 +1738,6 @@ app.get('/clearData', ({query}, res) => {
         .catch(err => res.send(err));
 });
 
-
 process.on('exit', function (code) {
     //Notification code when application process is killed
 
@@ -1881,7 +1880,7 @@ function saveDataSheet(ref, spreadsheetId, range = 'users') {
 
             map.splice(0, 0, firstRow);
 
-            clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
+            clearData(auth, spreadsheetId, ref).then(result => appendData(auth, spreadsheetId, ref, map)
                 .then(result => resolve(result))
                 .catch(err => reject(err)))
 
