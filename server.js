@@ -1892,6 +1892,45 @@ function saveDataSheet(ref, spreadsheetId, range = 'users') {
 
 app.get('/saveData', ({query}, res) => saveDataSheet(query.ref, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
+app.post('/saveData', ({query,body}, res) => {
+    var data = body
+    var spreadsheetId = query.sheet
+    var range = query.range
+
+    var firstRow = []
+
+    var map = data.map(per => {
+        per = flat(per)
+        for (var i in per) {
+            if (JSON.stringify(firstRow).match(i)) {
+            }
+            else firstRow.push(i)
+        }
+    })
+
+    console.log('firstRow', firstRow)
+
+    var map = data.map(per => {
+        per = flat(per)
+        var valueArray = []
+        for (var i in per) {
+            var index = _.indexOf(firstRow, i)
+            valueArray[index] = per[i]
+        }
+        return valueArray
+    })
+
+
+    map.splice(0, 0, firstRow);
+
+    clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
+        .then(result => res.send(result))
+        .catch(err => res.status(500).json(err)))
+
+
+
+})
+
 
 app.get('/saveDataToSheet', ({query}, res) => saveDataToSheet(query.pageID, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
