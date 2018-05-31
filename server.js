@@ -142,7 +142,6 @@ function saveData(ref, child, data) {
 
 var DATA = {}
 
-initData('account')
 initData('facebookPage')
 
 
@@ -201,206 +200,8 @@ function init() {
     //test
 
 
-    var a = 0,
-        b = 0;
-
-    setInterval(function () {
-        FacebookPost.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
-            .then(posts => {
-                posts.forEach(function (post) {
-                    console.log('facebook', b++);
-                    let promise = Promise.resolve(Object.assign({}, post, {schedule: true}));
-                    schedule.scheduleJob(post.time, function () {
-                        promise = PublishFacebook(post.to, post.content, post.poster, post.postId, post.channel)
-                    });
-                    return promise;
-                })
-
-            })
-
-
-        notificationCol.find({'time': {$gt: Date.now(), $lt: Date.now() + 60000}})
-            .toArray(function (err, notis) {
-                if (err) return
-                notis.forEach(noti => {
-                    console.log('noti', a++);
-                    schedule.scheduleJob(noti.time, function () {
-                        startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-                            console.log('array', array)
-                        })
-                    })
-                })
-            });
-
-    }, 60000);
-
-    db2.ref('tempNoti2').on('child_added', function (snap) {
-        var noti = snap.val()
-        if (!noti) return
-        if (!noti.notiId) noti.notiId = keygen()
-        console.log('noti', noti.notiId);
-
-        notificationCol.findOneAndUpdate({notiId: noti.notiId}, {$set: noti}, {upsert: true}).then(result => {
-            if (noti.time < Date.now() + 60000) {
-                console.log('noti sending now', a++);
-                schedule.scheduleJob(noti.time, function () {
-                    startSend(noti.userData, noti.mail, noti.channel, noti.notiId).then(function (array) {
-                        console.log('array', array)
-                    })
-                })
-            }
-            db2.ref('tempNoti2').child(snap.key).remove()
-        }).catch(err => console.log(err))
-    })
-
 }
 
-
-app.get('/sendEmailSES', (req, res) => {
-    var addressTo = req.param('email');
-    var from = req.param('from');
-    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;">Check it now</div>`
-
-    let mailOptions = {
-        from: {
-            name: 'Jobo',
-            address: from || 'contact@jobo.asia'
-        },
-        to: addressTo, // list of receivers
-        subject: 'Test Email |' + Date.now(), // Subject line
-        text: 'Hello world?', // plain text body
-        // html: `${emailMarkup}`, // html body
-    }
-    var mailTransport = nodemailer.createTransport(ses({
-        accessKeyId: 'AKIAIJJTKSHNDOBZWVEA',
-        secretAccessKey: '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',
-        region: 'us-west-2'
-    }));
-
-    // send mail with defined transport object
-    mailTransport.sendMail(mailOptions, (error, info) => {
-        if (error) res.status(500).json(error)
-        res.send('Email sent:' + addressTo)
-
-    });
-
-})
-app.get('/sendEmailZoho', (req, res) => {
-    var addressTo = req.param('email');
-    var from = req.param('from')
-    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(Date.now(), 'https://jobo.asia/file/jobo.png', 'o', 'l')}"/>Check it now</div>`;
-
-    let mailOptions = {
-        from: {
-            name: 'Jobo | Tìm việc nhanh',
-            address: from || CONFIG.email
-        },
-        to: addressTo, // list of receivers
-        subject: 'Test Email Zoho |' + Date.now(), // Subject line
-        html: emailMarkup, // html body
-        // text: 'Hello world?', // plain text body
-    }
-
-    var mailSplit = from.split('@')
-    var idEmail = mailSplit[0]
-    console.log('idEmail', idEmail + ' ' + from)
-    let mailTransport_sale = nodemailer.createTransport({
-        host: 'smtp.zoho.com',
-        port: 465,
-        secure: true, // true for 465, false for other ports
-        auth: {
-            user: CONFIG.zoho_email[idEmail].email, // generated ethereal user
-            pass: CONFIG.zoho_email[idEmail].password  // generated ethereal password
-        }
-    });
-
-    // send mail with defined transport object
-    mailTransport_sale.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            console.log('Error sent email', addressTo)
-            res.status(500).json(error);
-        }
-        res.json('Email sent:' + ' ' + addressTo);
-
-    });
-
-})
-app.get('/sendEmailGmail', (req, res) => {
-    var addressTo = req.param('email');
-    var from = req.param('from')
-    var emailMarkup = `<div style="cursor:auto;color:#000;font-family:${font};font-size:13px;line-height:22px;text-align:left;"><img src="${addTrackingEmail(Date.now(), 'https://jobo.asia/file/jobo.png', 'o', 'l')}"/>Check it now</div>`;
-
-    let mailOptions = {
-        from: {
-            name: 'Jobo | Tìm việc nhanh',
-            address: from || CONFIG.email
-        },
-        to: addressTo, // list of receivers
-        subject: 'Test Email Zoho |' + Date.now(), // Subject line
-        html: emailMarkup, // html body
-        // text: 'Hello world?', // plain text body
-    }
-
-    var mailSplit = from.split('@')
-    var idEmail = mailSplit[0]
-    console.log('idEmail', idEmail + ' ' + from)
-    var gmailTransport = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // true for 465, false for other ports
-        auth: {
-            user: 'thonglk.mac@gmail.com', // generated ethereal user
-            pass: 'usvhsadawnsbbnys'  // generated ethereal password
-        }
-    });
-
-    // send mail with defined transport object
-    gmailTransport.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            console.log('Error sent email', addressTo)
-            res.status(500).json(error);
-        }
-        res.json('Email sent:' + ' ' + addressTo);
-
-    });
-
-})
-
-app.get('/testSend', (req, res) => {
-    var notitest = {
-        "userData": {
-            "admin": true,
-            "createdAt": 1503224487723.0,
-            "currentStore": "-KpkMo8NqK8EMeKlxTUi",
-            "email": "thonglk@jobo.asia",
-            "messengerId": "1226124860830528",
-            "mobileToken": "eKfRyduIQDU:APA91bGofXHLJ2kfnSLbQTIH3AQzcVYhRDMUbHcYcVkasSO_kfFINNQ5bK0ThqJQnH-kS0C1PoPXqnCmZzNqeq2vujHjFwbRvWes14cWniOhqDMDBZHmWGY7STesjOJppVLMt5kRybnk",
-            "name": "Khánh Thông",
-            "package": "premium",
-            "phone": "0968269860",
-            "type": 1,
-            "userId": "thonglk",
-            "webToken": "fd7at9RvjMk:APA91bGtv-HAA6GRpPK0dQZH5RdEgizj1hWjFhVaRcvP2LiackhKcYIrf-eYy4y8UCJRNQBStFR8BElS62bg0xsMuoaWMX_JQwQk59rxkxCHb5VsApTeZcaN72fyHxPKf8LaQxO-SpNn"
-        },
-        "mail": {
-            "title": "thông",
-            "body": "haha",
-            "description1": "huhu",
-            "linktoaction": "https://google.com",
-            "calltoaction": "Hihi"
-        },
-        "notiId": "HneEOS",
-        "channel": {
-            "web": true,
-            "letter": true,
-            "mobile": true,
-            "messenger": true
-        }
-    }
-    startSend(notitest.userData, notitest.mail, notitest.channel, notitest.notiId)
-        .then(array => res.send(array))
-        .catch(err => res.status(500).json(err))
-})
 
 var sendEmail = (addressTo, mail, emailMarkup, notiId) => {
     return new Promise((resolve, reject) => {
@@ -473,7 +274,7 @@ app.get('/', function (req, res, next) {
     res.send('Jobo' + a + ' ' + b)
 })
 
-app.get('/l/:queryString', function (req, res, next) {
+app.get('/l/:queryString', (req, res) => {
     const queryString = req.params.queryString;
     if (!queryString) res.redirect(CONFIG.WEBURL + '/jobseeker/dash');
 
@@ -513,102 +314,6 @@ app.get('/l/:queryString', function (req, res, next) {
         });
 });
 
-app.get('/searchFacebook', function (req, res) {
-    let {type, q} = req.query
-
-    var searchOptions = {q, type};
-
-    graph.search(searchOptions, function (err, result) {
-        console.log(result); // {data: [{id: xxx, from: ...}, {id: xxx, from: ...}]}
-        res.send(result)
-    });
-})
-app.get('/getallpost', function (req, res) {
-
-    fetchFBPost().then(function (result) {
-        res.status(200).json(result);
-    }).catch(function (err) {
-        res.status(500).json(err);
-    })
-})
-
-function fetchFBPost() {
-    return new Promise((resolve, reject) => {
-        FacebookPost.find({id: {$ne: null}})
-            .then(posts => {
-                return Promise.all(posts.map(post => {
-                    return viewFBpost(post._doc);
-                }));
-            })
-            .then(posts => {
-                resolve(posts);
-            })
-            .catch(err => {
-                console.log(err);
-                reject(err);
-            });
-    });
-}
-
-function viewFBpost(post) {
-    return new Promise(function (resolve, reject) {
-        graph.get(post.id + "/?fields=comments,reactions", function (err, result) {
-            console.log('obj');
-            const checkAt = Date.now()
-
-            let reactions = {
-                haha: 0,
-                like: 0,
-                love: 0,
-                wow: 0,
-                sad: 0,
-                angry: 0
-            };
-            let comments = null
-            let check_error = null;
-            let still_alive = true
-
-
-            // post.checks.push(check);
-            // console.log(check);
-
-            if (err) {
-                still_alive = false
-                check_error = err;
-                console.log('post.err', check_error)
-            } else {
-                if (result.reactions) {
-                    reactions = {
-                        haha: result.reactions.data.filter(haha => haha.type === 'HAHA').length,
-                        like: result.reactions.data.filter(like => like.type === 'LIKE').length,
-                        love: result.reactions.data.filter(love => love.type === 'LOVE').length,
-                        wow: result.reactions.data.filter(wow => wow.type === 'WOW').length,
-                        sad: result.reactions.data.filter(sad => sad.type === 'SAD').length,
-                        angry: result.reactions.data.filter(angry => angry.type === 'ANGRY').length
-                    }
-                }
-                if (result.comments) {
-                    comments = result.comments.data;
-                    console.log(post.id)
-
-                }
-            }
-            var update = {
-                checkAt,
-                reactions,
-                comments,
-                check_error,
-                still_alive
-            }
-            console.log(post.id, update)
-            FacebookPost.findOneAndUpdate({postId: post.postId}, update)
-                .then(() => resolve({update}))
-                .catch(err => reject({err: err}))
-
-        })
-    })
-
-}
 
 function keygen() {
 
@@ -622,11 +327,11 @@ function keygen() {
     return key
 }
 
-function addTrackingEmail(notiId, url = 'https://firebasestorage.googleapis.com/v0/b/jobo-b8204.appspot.com/o/images%2Fjobo.png?alt=media&token=7c84f5ce-606d-4f18-a85b-177839349566', t = 'o', p = 'l', i = '') {
-    var trackUrl = ''
-    var platform = configP[p]
-    var type = configT[t]
-    var urlId = ''
+function addTrackingEmail(notiId, url = 'https://botform.me/data/jobo.png', t = 'o', p = 'l', i = '') {
+    var trackUrl = '';
+    var platform = configP[p];
+    var type = configT[t];
+    var urlId = '';
 
     if (i.length > 0) {
         urlId = notiId + ':' + p + ':' + t + ':' + i
@@ -677,57 +382,12 @@ function tracking(notiId, platform, url, type = 'open') {
         data[platform + '_' + type] = Date.now()
         console.log(data)
 
-        notificationCol.updateOne({notiId}, {$set: data})
+        joboPxl.database().ref('notification').child(notiId).update(data)
             .then(() => resolve({notiId, url}))
             .catch(err => {
                 reject(err);
             });
     });
-}
-
-app.get('/messengerRead', function (req, res) {
-    var {senderID} = req.query
-    var pipeline = {
-        'userData.messengerId': senderID,
-        'time': {$lt: Date.now()},
-        'messenger_open': null
-    }
-    notificationCol.find(pipeline).toArray(notis => {
-        var map = _.map(notis, noti => {
-            notificationCol.findOneAndUpdate({notiId: noti.notiId}, {
-                $set: {messenger_open: Date.now()}
-            }).then(result => console.log({code: 'success', notiId: noti.notiId}))
-            return noti
-        })
-        res.send(map)
-    })
-
-})
-
-function shortenURL(longURL, key) {
-    var shorturl = '';
-
-    var options = {
-        url: 'https://api-ssl.bitly.com/v3/shorten?access_token=3324d23b69543241ca05d5bbd96da2b17bf523cb&longUrl=' + longURL + '&format=json',
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    }
-
-
-// Start the request
-    request(options, function (error, response, body) {
-        if (body) {
-            var res = JSON.parse(body)
-            if (res.data && res.data.url) {
-                shorturl = res.data.url
-                shortLinkData[key] = shorturl
-
-            }
-        }
-    })
-    return shorturl;
 }
 
 String.prototype.getLink = function () {
@@ -747,9 +407,8 @@ function trackingTemplate(html, postId) {
             const link = atag.getLink();
             console.log(link);
             const tracking = addTrackingEmail(postId, link, 'c', `l`, i++);
-            // const tracking = shortenURL(link, `${postId}cl${i++}`);
             html = html.replace(link, tracking);
-            // return Promise.resolve(link);
+
         });
         return html;
     }
@@ -955,19 +614,7 @@ function startSend(userData, mail, channel, notiId) {
     });
 }
 
-function getPaginatedItems(items, page) {
-    var page = page || 1,
-        per_page = 15,
-        offset = (page - 1) * per_page,
-        paginatedItems = _.rest(items, offset).slice(0, per_page);
-    return {
-        page: page,
-        per_page: per_page,
-        total: items.length,
-        total_pages: Math.ceil(items.length / per_page),
-        data: paginatedItems
-    };
-}
+
 
 function sendMessenger(messengerId, noti, key, pageID) {
     return new Promise((resolve, reject) => {
@@ -1060,7 +707,6 @@ function sendNotificationToGivenUser(registrationToken, noti, type, key) {
     });
 }
 
-
 app.post('/newPost', (req, res, next) => {
     const post = req.body;
 
@@ -1081,7 +727,6 @@ app.post('/newPost', (req, res, next) => {
         .then(schedulePost => res.status(200).json(schedulePost))
         .catch(err => res.status(500).json(err));
 });
-
 
 function addShortLinkFBPost(postId, text) {
     const link = text.match(/https:\/\/.*\$primary/g)[0].replace(/\$primary/g, '');
@@ -1643,90 +1288,6 @@ function addSheet(auth, spreadsheetUrl, title, sheets) {
 }
 
 
-const storeRouter = express.Router({mergeParams: true});
-
-storeRouter.route('/export')
-    .get((req, res, next) => {
-        exportStore()
-            .then(resp => res.json(resp))
-            .catch(err => res.send(err));
-    });
-storeRouter.route('/import')
-    .post((req, res, next) => {
-        const {storeId = '=Row()-3', type, incharge = 'thaohp', storeName = null, address = null, name, phone, email, job, industry, ref, adminNote} = req.body;
-        importStore({storeId, type, incharge, storeName, address, name, phone, email, job, industry, ref, adminNote})
-            .then(values => res.status(200).json(values))
-            .catch(err => res.status(500).send(err));
-    });
-
-function exportStore() {
-    return new Promise((resolve, reject) => {
-        storeRef.orderByChild('createdBy').once('value')
-            .then(stores => {
-                console.log(stores.val());
-                return Promise.all(_.toArray(stores.val()).map(store => {
-                    let values = [];
-                    return userRef.child(store.createdBy).once('value').then(_user => {
-                        const user = _user.val();
-                        if (!user) return Promise.resolve([]);
-                        const incharge = user.incharge || '';
-                        const storeName = store.storeName || '';
-                        const address = store.address || '';
-                        const name = user.name || '';
-                        const phone = user.phone || '';
-                        const email = user.email || '';
-                        let job = '';
-                        if (store.job) Object.keys(store.job).forEach(key => job += `, ${key}`);
-                        const industry = store.industry || '';
-                        const ref = user.ref || '';
-                        const adminNote = store.adminNote || '';
-                        return Promise.resolve([`https://www.jobo.asia/view/store/${store.storeId}`, 'app', incharge, storeName, address, name, phone, email, job, industry, ref, adminNote]);
-                    })
-                        .catch(err => Promise.resolve([`ERR:`, JSON.stringify(err)]));
-                }));
-            })
-            .then(data => {
-                return newStore({}, data.filter(d => d.length > 0));
-            })
-            .then(res => {
-                console.log(res);
-                resolve(res);
-            })
-            .catch(err => reject(err));
-    });
-}
-
-function newStore({storeId = '=Row()-3', type, incharge = 'thaohp', storeName = null, address = null, name, phone, email, job, industry, ref, adminNote}, values) {
-    return new Promise((resolve, reject) => {
-        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-        const range = 'StoreCOL!A4:B';
-        const hyperLink = (link, caption) => `=HYPERLINK("${link}";"${caption}")`;
-        if (!values) values = [
-            [storeId, incharge, storeName, address, name, phone, email, job, industry, ref, adminNote]
-        ];
-        clearData(auth, spreadsheetId, range)
-            .then(() => appendData(auth, spreadsheetId, range, values))
-            .then(res => resolve(values))
-            .catch(err => resolve(err));
-    });
-}
-
-function importStore({storeId = '=Row()-3', type, incharge = 'thaohp', storeName = null, address = null, name, phone, email, job, industry, ref, adminNote}) {
-    return new Promise((resolve, reject) => {
-        const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-        const range = 'StoreCOL!A4:B';
-        let _job = '';
-        if (job) Object.keys(job).forEach(key => _job += `, ${key}`);
-        const values = [
-            [`https://www.jobo.asia/view/store/${storeId}`, 'app', incharge, storeName, address, name, phone, email, _job, industry, ref, adminNote]
-        ];
-        appendData(auth, spreadsheetId, range, values)
-            .then(res => resolve(values))
-            .catch(err => resolve(err));
-    });
-}
-
-app.use('/store', storeRouter);
 
 
 app.get('/clearData', ({query}, res) => {
@@ -1762,79 +1323,62 @@ process.on('uncaughtException', function (err) {
     axios.post('https://jobobot.herokuapp.com/noti', data);
 });
 
-app.get('/groupData', (req, res) => {
-    res.status(200).json(_.toArray(groupData));
-});
-
-app.get('/like/export', (req, res, next) => {
-    const spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
-    const range = 'LikeCOL!A2:J';
-
-    joboTest.database().ref('activity/like').once('value')
-        .then(_likes => {
-            const likes = _.sortBy(_likes.val(), function (card) {
-                return -card.likeAt
-            })
-            return Promise.all(likes.map(like => {
-                return [like.userId, like.storeId, like.employerId, like.userAvatar, like.storeAvatar
-                    , like.jobId, like.storeName, like.userName, like.type, new Date(like.likeAt).toLocaleDateString(), like.description, like.interviewTime, like.meet, like.success];
-            }));
-        })
-        .then(values => appendData(auth, spreadsheetId, range, values))
-        .then(data => res.status(200).json(data))
-        .catch(err => res.status(500).send(err));
-});
 
 
 function saveDataToSheet(pageID, spreadsheetId, range = 'users') {
     return new Promise((resolve, reject) => {
 
+        axios.get(`http://botform-webserver.herokuapp.com/viewResponse?page=${pageID}`).then(result => {
 
-        var where = _.where(DATA.account, {pageID})
-        var data = _.sortBy(where, function (data) {
-            if (data.createdAt) {
-                return data.createdAt
-            } else return 0
-        })
+            var where = result.data.data
+
+            var data = _.sortBy(where, function (data) {
+                if (data.createdAt) {
+                    return data.createdAt
+                } else return 0
+            })
 
 
-        var pretty = data.map(per => {
+            var pretty = data.map(per => {
 
-            delete per.lastReceive
-            delete per.lastSent
-            return per
+                delete per.lastReceive
+                delete per.lastSent
+                return per
 
-        })
+            })
 
-        var firstRow = ['id']
+            var firstRow = ['id']
 
-        var map = pretty.map(per => {
-            per = flat(per)
-            for (var i in per) {
-                if (JSON.stringify(firstRow).match(i)) {
+            var map = pretty.map(per => {
+                per = flat(per)
+                for (var i in per) {
+                    if (JSON.stringify(firstRow).match(i)) {
+                    }
+                    else firstRow.push(i)
                 }
-                else firstRow.push(i)
-            }
+            })
+
+            console.log('firstRow', firstRow)
+
+            var map = pretty.map(per => {
+                per = flat(per)
+                var valueArray = []
+                for (var i in per) {
+                    var index = _.indexOf(firstRow, i)
+                    valueArray[index] = per[i]
+                }
+                return valueArray
+            })
+
+
+            map.splice(0, 0, firstRow);
+
+            clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
+                .then(result => resolve(result))
+                .catch(err => reject(err)))
+
         })
 
-        console.log('firstRow', firstRow)
-
-        var map = pretty.map(per => {
-            per = flat(per)
-            var valueArray = []
-            for (var i in per) {
-                var index = _.indexOf(firstRow, i)
-                valueArray[index] = per[i]
-            }
-            return valueArray
-        })
-
-
-        map.splice(0, 0, firstRow);
-
-        clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
-            .then(result => resolve(result))
-            .catch(err => reject(err)))
 
 
     })
@@ -1892,7 +1436,7 @@ function saveDataSheet(ref, spreadsheetId, range = 'users') {
 
 app.get('/saveData', ({query}, res) => saveDataSheet(query.ref, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
-app.post('/saveData', ({query,body}, res) => {
+app.post('/saveData', ({query, body}, res) => {
     var data = body
     var spreadsheetId = query.sheet
     var range = query.range
@@ -1928,8 +1472,8 @@ app.post('/saveData', ({query,body}, res) => {
         .catch(err => res.status(500).json(err)))
 
 
-
 })
+
 
 
 app.get('/saveDataToSheet', ({query}, res) => saveDataToSheet(query.pageID, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
