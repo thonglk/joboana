@@ -1265,6 +1265,28 @@ function appendData(auth, spreadsheetId, range, values) {
     });
 }
 
+
+function updateData(auth, spreadsheetId, range, values) {
+    return new Promise((resolve, reject) => {
+        sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range, //Change Sheet1 if your worksheet's name is something else
+            valueInputOption: "USER_ENTERED",
+            resource: {
+                values
+            }
+        }, (err, response) => {
+            if (err) {
+                console.log('The API returned an error: ' + err);
+                resolve(err);
+            } else {
+                console.log("Updated");
+                resolve({response, values});
+            }
+        });
+    });
+}
+
 function addSheet(auth, spreadsheetUrl, title, sheets) {
     return new Promise((resolve, reject) => {
 
@@ -1330,6 +1352,7 @@ function saveDataToSheet(pageID, spreadsheetId, range = 'users') {
 
         axios.get(`http://botform-webserver.herokuapp.com/viewResponse?page=${pageID}`).then(result => {
 
+
             var where = result.data.data
 
             var data = _.sortBy(where, function (data) {
@@ -1373,7 +1396,7 @@ function saveDataToSheet(pageID, spreadsheetId, range = 'users') {
 
             map.splice(0, 0, firstRow);
 
-            clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
+            clearData(auth, spreadsheetId, range).then(result => updateData(auth, spreadsheetId, range, map)
                 .then(result => resolve(result))
                 .catch(err => reject(err)))
 
@@ -1424,7 +1447,7 @@ function saveDataSheet(ref, spreadsheetId, range = 'users') {
 
             map.splice(0, 0, firstRow);
 
-            clearData(auth, spreadsheetId, ref).then(result => appendData(auth, spreadsheetId, ref, map)
+            clearData(auth, spreadsheetId, ref).then(result => updateData(auth, spreadsheetId, ref, map)
                 .then(result => resolve(result))
                 .catch(err => reject(err)))
 
@@ -1467,13 +1490,12 @@ app.post('/saveData', ({query, body}, res) => {
 
     map.splice(0, 0, firstRow);
 
-    clearData(auth, spreadsheetId, range).then(result => appendData(auth, spreadsheetId, range, map)
+    clearData(auth, spreadsheetId, range).then(result => updateData(auth, spreadsheetId, range, map)
         .then(result => res.send(result))
         .catch(err => res.status(500).json(err)))
 
 
 })
-
 
 
 app.get('/saveDataToSheet', ({query}, res) => saveDataToSheet(query.pageID, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
