@@ -615,7 +615,6 @@ function startSend(userData, mail, channel, notiId) {
 }
 
 
-
 function sendMessenger(messengerId, noti, key, pageID) {
     return new Promise((resolve, reject) => {
         var url = 'https://jobo-chat.herokuapp.com/noti';
@@ -1310,8 +1309,6 @@ function addSheet(auth, spreadsheetUrl, title, sheets) {
 }
 
 
-
-
 app.get('/clearData', ({query}, res) => {
     const spreadsheetId = query.sheetId || '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk';
     const range = query.range || 'LeadCOL!A2:L';
@@ -1344,7 +1341,6 @@ process.on('uncaughtException', function (err) {
     };
     axios.post('https://jobobot.herokuapp.com/noti', data);
 });
-
 
 
 function saveDataToSheet(pageID, spreadsheetId, range = 'users') {
@@ -1396,14 +1392,10 @@ function saveDataToSheet(pageID, spreadsheetId, range = 'users') {
 
             map.splice(0, 0, firstRow);
 
-            clearData(auth, spreadsheetId, range).then(result => updateData(auth, spreadsheetId, range, map)
+            updateData(auth, spreadsheetId, range, map)
                 .then(result => resolve(result))
-                .catch(err => reject(err)))
-
+                .catch(err => reject(err))
         })
-
-
-
     })
 }
 
@@ -1447,9 +1439,9 @@ function saveDataSheet(ref, spreadsheetId, range = 'users') {
 
             map.splice(0, 0, firstRow);
 
-            clearData(auth, spreadsheetId, ref).then(result => updateData(auth, spreadsheetId, ref, map)
+            updateData(auth, spreadsheetId, ref, map)
                 .then(result => resolve(result))
-                .catch(err => reject(err)))
+                .catch(err => reject(err))
 
         })
 
