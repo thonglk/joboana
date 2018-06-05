@@ -89,8 +89,9 @@ MongoClient.connect(uri, function (err, db) {
 
 app.use(cors());
 app.use(express.static(__dirname + '/static'));
-app.use(bodyParser.json()); // support json encoded bodies
-app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
+
 app.use(function (req, res, next) {
     res.contentType('application/json');
     next();
