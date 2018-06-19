@@ -1205,6 +1205,8 @@ function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG
 
 
 function getDataToObj(rows, query) {
+    if(!rows) return []
+
     var firstRow = rows[0]
     var queryVi = vietnameseDecode(query)
     rows.shift()
@@ -1551,4 +1553,6 @@ function copyFile(originFileId, copyTitle) {
 }
 
 app.get('/copyFile', ({query}, res) => copyFile(query.id, query.name).then(result => res.send(result)).catch(err => res.status(500).json(err)))
+
+
 
