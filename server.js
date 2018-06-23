@@ -1205,7 +1205,7 @@ function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG
 
 
 function getDataToObj(rows, query) {
-    if(!rows) return []
+    if (!rows) return []
 
     var firstRow = rows[0]
     var queryVi = vietnameseDecode(query)
@@ -1554,5 +1554,29 @@ function copyFile(originFileId, copyTitle) {
 
 app.get('/copyFile', ({query}, res) => copyFile(query.id, query.name).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
+var limit = 5000
+function per(startAt) {
+    var i = 0, a = 0
 
+    var ref = joboPxl.database().ref('notification').orderByKey().startAt(startAt).limitToFirst(limit)
+    ref.on('child_added', snap => {
+        var snapKey = snap.key
+        var snapVal = snap.val()
+        a++
+        if (snapVal.mail && snapVal.mail.html) {
+            i++
+            setTimeout(function () {
+                joboPxl.database().ref('notification').child(snapKey).child('mail').child('html').remove()
+            }, 10 * i)
+        }
+        console.log(snapKey + ' ' + a + ' ' + i)
+        if (a == limit) {
 
+            console.log('new turn: ' + snapKey)
+            per(snapKey)
+        }
+
+    })
+}
+
+per('bxfL0K')
