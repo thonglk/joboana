@@ -1464,11 +1464,12 @@ function saveData(query, body) {
 
 app.post('/pushData', ({query, body}, res) => {
 
-    getData(auth, query.sheetId, query.range, query.search)
+    getData(auth, query.sheet, query.range, query.search)
         .then(rows => {
             var old_data = rows.data
             old_data = old_data.concat(body)
-            saveData(query, old_data)
+            saveData(query, old_data).then(result => res.send(result))
+                .catch(err => res.status(500).json(err))
         })
 
 
