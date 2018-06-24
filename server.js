@@ -51,39 +51,6 @@ var staticData = {
     profile: 0
 }
 
-//Mongoose//
-var mongoose = require('mongoose');
-var FacebookPost = require('./models/facebook-post');
-
-var uri = 'mongodb://joboapp:joboApp.1234@ec2-54-157-20-214.compute-1.amazonaws.com:27017/joboapp';
-
-mongoose.connect(uri);
-
-console.log('Connected to MongoDB at ', uri);
-
-
-const MongoClient = require('mongodb');
-
-
-var md, userCol, profileCol, storeCol, jobCol, notificationCol, staticCol, leadCol, emailChannelCol
-
-MongoClient.connect(uri, function (err, db) {
-    if (err) console.log(err);
-
-    md = db;
-    userCol = md.collection('user');
-    profileCol = md.collection('profile');
-    storeCol = md.collection('store');
-    jobCol = md.collection('job');
-    notificationCol = md.collection('notification');
-    staticCol = md.collection('static');
-    leadCol = md.collection('lead');
-    emailChannelCol = md.collection('emailChannel');
-
-    console.log("Connected correctly to server.");
-    init();
-});
-
 
 // TODO(DEVELOPER): Configure your email transport.
 
@@ -190,9 +157,7 @@ var configT = {
 
 function init() {
 
-    groupRef.on('value', function (snap) {
-        groupData = snap.val()
-    });
+
     configRef.on('value', function (snap) {
         CONFIG = snap.val()
         facebookAccount = CONFIG.facebookAccount;
@@ -1187,7 +1152,7 @@ authentication.authenticate().then(auth => {
     });
 });
 
-function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk', range = 'reataurant', query) {
+function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG14Vk', range, query) {
     return new Promise((resolve, reject) => {
         sheets.spreadsheets.values.get({
             spreadsheetId,
@@ -1198,6 +1163,8 @@ function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG
                 reject(err);
             }
             var rows = response.values;
+            console.log('The API: ', rows);
+
             resolve({spreadsheetId, range, query, data: getDataToObj(rows, query)});
         });
     });
@@ -1454,40 +1421,55 @@ function saveDataSheet(ref, spreadsheetId, range = 'users') {
 
 app.get('/saveData', ({query}, res) => saveDataSheet(query.ref, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
-app.post('/saveData', ({query, body}, res) => {
-    var data = body
-    var spreadsheetId = query.sheet
-    var range = query.range
+app.post('/saveData', ({query, body}, res) => saveData(query, body).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
-    var firstRow = []
+function saveData(query, body) {
+    return new Promise((resolve, reject) => {
+        var data = body
+        var sheetId = query.sheet
+        var range = query.range
 
-    var map = data.map(per => {
-        per = flat(per)
-        for (var i in per) {
-            if (JSON.stringify(firstRow).match(i)) {
+        var firstRow = []
+
+        var map = data.map(per => {
+            per = flat(per)
+            for (var i in per) {
+                if (JSON.stringify(firstRow).match(i)) {
+                }
+                else firstRow.push(i)
             }
-            else firstRow.push(i)
-        }
+        })
+
+        console.log('firstRow', firstRow)
+
+        var map = data.map(per => {
+            per = flat(per)
+            var valueArray = []
+            for (var i in per) {
+                var index = _.indexOf(firstRow, i)
+                valueArray[index] = per[i]
+            }
+            return valueArray
+        })
+
+
+        map.splice(0, 0, firstRow);
+
+        updateData(auth, sheetId, range, map)
+            .then(result => resolve(result))
+            .catch(err => reject(err))
     })
 
-    console.log('firstRow', firstRow)
+}
 
-    var map = data.map(per => {
-        per = flat(per)
-        var valueArray = []
-        for (var i in per) {
-            var index = _.indexOf(firstRow, i)
-            valueArray[index] = per[i]
-        }
-        return valueArray
-    })
+app.post('/pushData', ({query, body}, res) => {
 
-
-    map.splice(0, 0, firstRow);
-
-    clearData(auth, spreadsheetId, range).then(result => updateData(auth, spreadsheetId, range, map)
-        .then(result => res.send(result))
-        .catch(err => res.status(500).json(err)))
+    getData(auth, query.sheetId, query.range, query.search)
+        .then(rows => {
+            var old_data = rows.data
+            old_data = old_data.concat(body)
+            saveData(query, old_data)
+        })
 
 
 })
@@ -1553,3 +1535,4 @@ function copyFile(originFileId, copyTitle) {
 }
 
 app.get('/copyFile', ({query}, res) => copyFile(query.id, query.name).then(result => res.send(result)).catch(err => res.status(500).json(err)))
+
