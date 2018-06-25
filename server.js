@@ -1163,8 +1163,6 @@ function getData(auth, spreadsheetId = '1mVEDpJKiDsRfS7bpvimL7OZQyhYtu_v44hzPUcG
                 reject(err);
             }
             var rows = response.values;
-            console.log('The API: ', rows);
-
             resolve({spreadsheetId, range, query, data: getDataToObj(rows, query)});
         });
     });
@@ -1247,10 +1245,10 @@ function updateData(auth, spreadsheetId, range, values) {
         }, (err, response) => {
             if (err) {
                 console.log('The API returned an error: ' + err);
-                resolve(err);
+                reject(err);
             } else {
                 console.log("Updated");
-                resolve({response, values});
+                resolve({response});
             }
         });
     });
