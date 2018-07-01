@@ -24,6 +24,7 @@ var graph = require('fbgraph');
 var json2csv = require('json2csv');
 var shortLinkData = {}
 var flat = require('flat')
+var unflatten = require('flat').unflatten
 var privateKey = fs.readFileSync('server.key', 'utf8');
 var certificate = fs.readFileSync('server.crt', 'utf8');
 
@@ -118,14 +119,20 @@ var secondary = firebase.initializeApp({
     databaseURL: "https://jobo-b8204.firebaseio.com"
 }, "secondary");
 var joboPxl = firebase.initializeApp({
-    credential: firebase.credential.cert('jobo-pxl.json'),
+    credential: firebase.credential.cert({
+        "type": "service_account",
+        "project_id": "jobo-pxl",
+        "private_key_id": "0966e80d48e1011f14af3b024bb63a1b1deb3a0e",
+        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCWhUanh3b8jGvu\nH3M5kgqni7bva+0r2avz1ZE9LnkraV6GQ7NwHGcCAtEPqVeDaGvWVp+HaDfmg+T8\nh5TYl1A1KqmoHHsOagNOorRdUEHEh5kLjJbAIjjkideX4fLZ/cPfFfzM0+bbrQH+\nJlVSaqSeCY4dHaaIx/4XaimNoqbicjplzLMoCR1qBks/CkudO0haibSOFCtBoGLL\nAKfC2C5Ixh9KrnG9b9hqPGPXPDpnhe0IeGQEIefPBVHWfSClu5I0Ku2dooOgL2q6\nlKbj2xfRFrXpMBW7l/1TrIiDbLQ6T86kbm3C78Bidgpliq6pkyhUnKwZ4DOU3Yvo\nFvLgiqbjAgMBAAECggEAQ2ndgxrAx8t8a2HakWY/L1r7y69iwcjzonl8WxJ9YlwG\n4ctgik2uNNBeIc2OTGRwJ8cUG+kpYCyiWhe/KmJaofVBlvFqi8IfSRDGByTyz7qL\naQjGW7b4FCNIU9X2lnt5RmjqmDIvqyOJSPKSNB9fKwjMhW3KMGih/Iqnoa+/Xptq\nNytqrjXkawOW5wH1Ro9SWcOnhFZ+qi2Cip6TVP5Aleu6jSznZC/ZylScnNG0X/xZ\nv3lkucTNZT50jBSHKkdiohMV0owlt7RrQaz4M2a4OhxGgE30uont1UPh/LZzvpTI\nuVFdFJNG/2LFstP+US3NK1S22K3suBlr/XkRSeBxgQKBgQDQTKdDZUXSMer7h43B\nNy2b2aN2AEEaIbM+v51zLJ9JHeAryTLs7kD+zbLCnBi8NqTrhLbSWTtgjjtSsNlO\nh/NsD3kPDIpslRaN0z+BwCHku+ALVjfdRIecgpChDI+4LI8JPEddvHXj1N2gPt+I\nBuPNcpxmeXKkwr8/O0YKcAeimQKBgQC4/WWcwC0eIyyrGQXRbICVVEL2aHFtXBrN\nLMymxn3sLabNQwoqlRFsU6NQ1tGRbwqBlgJsCCy6YSFoWAHY9u4z4ERBdPVFRQ98\nxaFAfNV+/U/Hj19NZJXsBcXzCqPn2F8YCRo8+kMyj5p2qVcQQ0SvcFK5wMLp9mq8\nZHx+FB2+2wKBgQCLlJIQ63AaJjEcU/19mAgMA48xp4H4jNScG7LaVvB2AnsRXEWv\n1wfetuAu4IMCvGtPFyObWQgc77J4+uDjat6HbubkWrb3hAAVEZXg0Grl569+aUwO\nDboB+swH327/L3y555a7DWrCPQY2N2t6r4M/TKnZUVCtb4LQUFvi6qdzIQKBgBn6\n3G5rPurgncFZvktvJY/TSaQ5ftSQ/uKZzBQQBFdLAgYJyD+6t7uy81jDEqOOKLeS\nTbzGWSHDymFRGtFRvJpkgLGAr4GO9WHcj4zy+zjecnngVM4Vtkhzdx1u/R3ucUx6\n2sh9jTpomJTZq3SJPfg1miikPbuF8++JXUKHqLXJAoGBAMIa6gp32xvnETwi+f7H\neo2YRaDWx2cOlkcDO7itJlvYOEBGatqI4b4sVdiyBVrEcSwsj/mzIcDKP6cfEQnl\nYkzTKbRYR3SBRy3lr+Dv9zsvDPOe72TfaXQEmO277GgYNoj27FCkg27Ws3Lcr3K7\nYgm3Vo7dpvZJ8bsOTXI2QkWd\n-----END PRIVATE KEY-----\n",
+        "client_email": "firebase-adminsdk-5btfq@jobo-pxl.iam.gserviceaccount.com",
+        "client_id": "117805772525673114490",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://accounts.google.com/o/oauth2/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-5btfq%40jobo-pxl.iam.gserviceaccount.com"
+    }),
     databaseURL: "https://jobo-pxl.firebaseio.com"
 }, 'jobo-pxl');
-
-var joboTest = firebase.initializeApp({
-    credential: firebase.credential.cert('jobotest.json'),
-    databaseURL: "https://jobotest-15784.firebaseio.com"
-}, 'joboTest');
 
 
 var db2 = joboPxl.database();
@@ -1186,7 +1193,7 @@ function getDataToObj(rows, query) {
         for (var i in firstRow) {
             newRow[firstRow[i]] = row[i]
         }
-        return newRow
+        return unflatten(newRow)
     })
 
     return array
@@ -1534,4 +1541,60 @@ function copyFile(originFileId, copyTitle) {
 }
 
 app.get('/copyFile', ({query}, res) => copyFile(query.id, query.name).then(result => res.send(result)).catch(err => res.status(500).json(err)))
-
+//
+// function funnel(userData = {
+//     email: "thonglk.mac@gmail.com",
+//     name: "Thông Lê",
+//     id: "123",
+//     send_now: "TRUE",
+//     "Download free ebook": "TRUE",
+//     "View course": "TRUE",
+//     vua_xem_wordcup__vua_hoc_thiet_ke_online_voi_3_khoa_combo_: "sent 11:35 27/6 GMT+0 sent 12:33 27/6 GMT+0 open 12:33 27/6 GMT+0",
+//     combo_3_khoa_hoc_thiet_ke_tu_moi_bat_dau_thanh_pro_designer_: "sent 11:49 28/6 GMT+0 open 11:50 28/6 GMT+0 "
+// }, funnelData = [
+//     {
+//         funnel: "Download free ebook",
+//         content_1: "Ebook Giveaway: Học PHOTOSHOP TỪ A-Z"
+//     },
+//     {
+//         funnel: "View course",
+//         content_1: "Combo 3 khóa học thiết kế từ MỚI BẮT ĐẦU thành PRO Designer",
+//         content_2: "Vừa xem Wordcup, vừa học thiết kế online với 3 khóa Combo"
+//     },
+//     {
+//         funnel: "Register"
+//     },
+//     {
+//         funnel: "Payment"
+//     },
+//     {
+//         funnel: "Learn"
+//     },
+//     {
+//         funnel: "Register another course"
+//     }
+// ]) {
+//
+//     if (!userData.next_step) return {message: "No next_step"}
+//     var currentFunnel = _.findWhere(funnelData, {funnel: userData.next_step})
+//     if (!currentFunnel) return {message: "No match funnel"}
+//
+//     if (!userData[currentFunnel.content_1]) {
+//         if (currentFunnel.content_1) return {content: currentFunnel.content_1}
+//         else return {message: "No content", content: "content_1", funnel: currentFunnel.funnel}
+//
+//     } else if (!userData[currentFunnel.content_2]) {
+//         if (currentFunnel.content_2) return {content: currentFunnel.content_2}
+//         else return {message: "No content", content: "content_2", funnel: currentFunnel.funnel}
+//
+//     } else if (!userData[currentFunnel.content_3]) {
+//         if (currentFunnel.content_3) return {content: currentFunnel.content_3}
+//         else return {message: "No content", content: "content_3", funnel: currentFunnel.funnel}
+//
+//     } else return {message: "Out of content", funnel: currentFunnel.funnel}
+//
+//
+// }
+//
+// console.log(funnel())
+//
