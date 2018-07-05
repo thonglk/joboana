@@ -1456,8 +1456,6 @@ function saveData(query, body) {
             }
             return valueArray
         })
-
-
         map.splice(0, 0, firstRow);
 
         updateData(auth, sheetId, range, map)
@@ -1473,7 +1471,8 @@ app.post('/pushData', ({query, body}, res) => {
         .then(rows => {
             var old_data = rows.data
             old_data = old_data.concat(body)
-            saveData(query, old_data).then(result => res.send(result))
+            var indexOf = _.indexOf(old_data,body[0])
+            saveData(query, old_data).then(result => res.send({indexOf}))
                 .catch(err => res.status(500).json(err))
         })
 
