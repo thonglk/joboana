@@ -1193,7 +1193,7 @@ function getDataToObj(rows, query) {
         for (var i in firstRow) {
             newRow[firstRow[i]] = row[i]
         }
-        return unflatten(newRow)
+        return newRow
     })
 
     return array
