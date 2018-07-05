@@ -1479,6 +1479,20 @@ app.post('/pushData', ({query, body}, res) => {
 
 })
 
+app.post('/saveChild', ({query, body}, res) => {
+
+    getData(auth, query.sheet, query.range, query.search)
+        .then(rows => {
+            var old_data = rows.data
+            old_data[query.key] = Object.assign(old_data[query.key],body)
+            var indexOf = _.indexOf(old_data,body[0])
+            saveData(query, old_data).then(result => res.send({indexOf}))
+                .catch(err => res.status(500).json(err))
+        })
+
+
+})
+
 
 app.get('/saveDataToSheet', ({query}, res) => saveDataToSheet(query.pageID, query.sheetId).then(result => res.send(result)).catch(err => res.status(500).json(err)))
 
